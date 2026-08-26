@@ -6,9 +6,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const { data: { user } } = await supabase.auth.getUser();
 
   return (
-    <div className="flex min-h-screen">
+    <div className="min-h-screen md:flex">
       <Sidebar userEmail={user?.email || ''} />
-      <main className="flex-1 p-4 md:p-8 max-w-[1400px]">{children}</main>
+      <main className="md:flex-1 p-4 md:p-8 max-w-[1400px]">{children}</main>
     </div>
   );
 }
