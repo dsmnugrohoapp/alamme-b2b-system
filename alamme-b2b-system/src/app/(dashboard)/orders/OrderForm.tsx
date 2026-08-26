@@ -50,15 +50,18 @@ export default function OrderForm({
     const newItem: Item = { productId: p.id, qty: 1, unitPrice: p.price, discountType: 'percent', discountValue: 0 };
     setItems([...items, newItem]);
   }
-  function updateItem(idx: number, field: keyof Item, value: any) {
+    function updateItem(idx: number, field: keyof Item, value: any) {
     const next = [...items];
     if (field === 'productId') {
       const p = products.find((p) => p.id === value);
       next[idx] = { ...next[idx], productId: value, unitPrice: p ? p.price : next[idx].unitPrice };
+    } else if (field === 'discountType') {
+      next[idx] = { ...next[idx], discountType: value };
     } else {
       next[idx] = { ...next[idx], [field]: parseFloat(value) || 0 };
     }
     setItems(next);
+  }
   }
   function removeItem(idx: number) {
     setItems(items.filter((_, i) => i !== idx));
