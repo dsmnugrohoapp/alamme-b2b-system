@@ -47,7 +47,8 @@ export default function OrderForm({
   function addItem() {
     if (products.length === 0) return;
     const p = products[0];
-    setItems([...items, { productId: p.id, qty: 1, unitPrice: p.price }]);
+    const newItem: Item = { productId: p.id, qty: 1, unitPrice: p.price, discountType: 'percent', discountValue: 0 };
+    setItems([...items, newItem]);
   }
   function updateItem(idx: number, field: keyof Item, value: any) {
     const next = [...items];
