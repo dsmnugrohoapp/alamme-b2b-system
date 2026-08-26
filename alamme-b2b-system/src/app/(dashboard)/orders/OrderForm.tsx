@@ -2,17 +2,17 @@
 import { useMemo, useState } from 'react';
 import { saveOrder } from '@/lib/actions/orders';
 import WilayahSelect from '@/components/WilayahSelect';
-import { computeOrderCalc, computePoints, rp, pct, todayStr, type Campaign } from '@/lib/utils';
+import { computeOrderCalc, computePoints, rp, pct, todayStr, type Campaign, type OrderItemInput } from '@/lib/utils';
 
 type Product = { id: string; sku: string; name: string; uom: string; price: number };
 type Customer = { id: string; name: string; type: string; city: string; pay_term: string; pkp: boolean; phone: string; pic: string };
-type Item = { productId: string; qty: number; unitPrice: number };
+type Item = OrderItemInput;
 
 export default function OrderForm({
-  products, customers, campaigns, order, orderItems,
+  products, customers, campaigns, order, orderItems, pointValue = 1000,
 }: {
-  products: Product[]; customers: Customer[]; campaigns: Campaign[];
-  order?: any; orderItems?: { product_id: string; qty: number; unit_price: number }[];
+  products: Product[]; customers: Customer[]; campaigns: Campaign[]; pointValue?: number;
+  order?: any; orderItems?: { product_id: string; qty: number; unit_price: number; discount_type?: string; discount_value?: number }[];
 }) {
   const [customerId, setCustomerId] = useState(order?.customer_id || '');
   const [customerQuery, setCustomerQuery] = useState(
@@ -20,10 +20,13 @@ export default function OrderForm({
   );
   const [showResults, setShowResults] = useState(false);
   const [items, setItems] = useState<Item[]>(
-    orderItems?.map((it) => ({ productId: it.product_id, qty: Number(it.qty), unitPrice: Number(it.unit_price) })) ||
-      []
+    orderItems?.map((it) => ({
+      productId: it.product_id, qty: Number(it.qty), unitPrice: Number(it.unit_price),
+      discountType: (it.discount_type as 'percent' | 'value') || 'percent', discountValue: Number(it.discount_value || 0),
+    })) || []
   );
-  const [discount, setDiscount] = useState(order?.discount || 0);
+  const [orderDiscountType, setOrderDiscountType] = useState<'percent' | 'value'>((order?.discount_type as any) || 'value');
+  const [orderDiscountValue, setOrderDiscountValue] = useState(order?.discount_value || 0);
   const [shipCharge, setShipCharge] = useState(order?.ship_charge || 0);
   const [shipActual, setShipActual] = useState(order?.ship_actual || 0);
   const [otherCost, setOtherCost] = useState(order?.other_cost || 0);
@@ -50,7 +53,7 @@ export default function OrderForm({
     const newItem: Item = { productId: p.id, qty: 1, unitPrice: p.price, discountType: 'percent', discountValue: 0 };
     setItems([...items, newItem]);
   }
-    function updateItem(idx: number, field: keyof Item, value: any) {
+  function updateItem(idx: number, field: keyof Item, value: any) {
     const next = [...items];
     if (field === 'productId') {
       const p = products.find((p) => p.id === value);
@@ -62,16 +65,18 @@ export default function OrderForm({
     }
     setItems(next);
   }
-  }
   function removeItem(idx: number) {
     setItems(items.filter((_, i) => i !== idx));
   }
 
-  const calc = useMemo(() => computeOrderCalc(items, discount, shipCharge, shipActual, otherCost, ppn), [items, discount, shipCharge, shipActual, otherCost, ppn]);
+  const calc = useMemo(
+    () => computeOrderCalc(items, orderDiscountType, orderDiscountValue, shipCharge, shipActual, otherCost, ppn),
+    [items, orderDiscountType, orderDiscountValue, shipCharge, shipActual, otherCost, ppn]
+  );
   const pointsPreview = useMemo(() => {
     if (!customer || customer.type !== 'Reseller') return { total: 0, breakdown: [] };
-    return computePoints(campaigns, customer.type, items, calc.subtotal, date);
-  }, [customer, items, calc.subtotal, date, campaigns]);
+    return computePoints(campaigns, customer.type, items, calc.subtotal, date, pointValue);
+  }, [customer, items, calc.subtotal, date, campaigns, pointValue]);
 
   return (
     <form action={saveOrder}>
@@ -80,6 +85,8 @@ export default function OrderForm({
       <input type="hidden" name="items_json" value={JSON.stringify(items)} />
       <input type="hidden" name="ppn" value={ppn ? '1' : '0'} />
       <input type="hidden" name="ship_differ" value={shipDiffer ? '1' : '0'} />
+      <input type="hidden" name="discount_type" value={orderDiscountType} />
+      <input type="hidden" name="discount_value" value={orderDiscountValue} />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
         <div className="field relative">
@@ -153,28 +160,53 @@ export default function OrderForm({
 
       <fieldset className="border border-dashed border-gray-300 rounded-lg p-3 mb-3">
         <legend className="text-[11px] font-bold uppercase text-golddeep px-1">Item Order</legend>
-        <div className="hidden md:grid grid-cols-[2.5fr_90px_130px_120px_30px] gap-2 text-[10.5px] uppercase text-gray-500 font-bold mb-1.5">
-          <div>Produk</div><div>Qty</div><div>Harga Jual/unit</div><div>Subtotal</div><div></div>
+        <p className="text-xs text-gray-500 mb-2">Diskon per produk untuk deal khusus reseller/distributor — pilih Persen atau Rp per baris.</p>
+        <div className="hidden md:grid grid-cols-[2fr_70px_110px_130px_120px_30px] gap-2 text-[10.5px] uppercase text-gray-500 font-bold mb-1.5">
+          <div>Produk</div><div>Qty</div><div>Harga Jual/unit</div><div>Diskon</div><div>Subtotal Bersih</div><div></div>
         </div>
         {items.length === 0 && <p className="text-sm text-gray-400 mb-2">Belum ada item.</p>}
-        {items.map((it, idx) => (
-          <div key={idx} className="grid grid-cols-1 md:grid-cols-[2.5fr_90px_130px_120px_30px] gap-2 mb-2 items-center border md:border-0 rounded-lg p-2 md:p-0">
-            <select value={it.productId} onChange={(e) => updateItem(idx, 'productId', e.target.value)}>
-              {products.map((p) => <option key={p.id} value={p.id}>[{p.sku}] {p.name}</option>)}
-            </select>
-            <input type="number" value={it.qty} min={0} onChange={(e) => updateItem(idx, 'qty', e.target.value)} />
-            <input type="number" value={it.unitPrice} onChange={(e) => updateItem(idx, 'unitPrice', e.target.value)} />
-            <div className="font-mono text-xs pt-2">{rp(it.qty * it.unitPrice)}</div>
-            <button type="button" onClick={() => removeItem(idx)} className="text-red-600 text-sm">✕</button>
-          </div>
-        ))}
+        {items.map((it, idx) => {
+          const line = (() => {
+            const gross = it.qty * it.unitPrice;
+            const disc = it.discountType === 'percent' ? (gross * (it.discountValue || 0)) / 100 : it.discountValue || 0;
+            return { gross, net: Math.max(0, gross - Math.min(disc, gross)) };
+          })();
+          return (
+            <div key={idx} className="grid grid-cols-1 md:grid-cols-[2fr_70px_110px_130px_120px_30px] gap-2 mb-2 items-center border md:border-0 rounded-lg p-2 md:p-0">
+              <select value={it.productId} onChange={(e) => updateItem(idx, 'productId', e.target.value)}>
+                {products.map((p) => <option key={p.id} value={p.id}>[{p.sku}] {p.name}</option>)}
+              </select>
+              <input type="number" value={it.qty} min={0} onChange={(e) => updateItem(idx, 'qty', e.target.value)} />
+              <input type="number" value={it.unitPrice} onChange={(e) => updateItem(idx, 'unitPrice', e.target.value)} />
+              <div className="flex gap-1">
+                <select value={it.discountType} onChange={(e) => updateItem(idx, 'discountType', e.target.value)} className="!px-1.5 !text-xs w-16">
+                  <option value="percent">%</option>
+                  <option value="value">Rp</option>
+                </select>
+                <input type="number" value={it.discountValue} min={0} onChange={(e) => updateItem(idx, 'discountValue', e.target.value)} placeholder="0" className="!text-xs" />
+              </div>
+              <div className="font-mono text-xs pt-2">{rp(line.net)}</div>
+              <button type="button" onClick={() => removeItem(idx)} className="text-red-600 text-sm">✕</button>
+            </div>
+          );
+        })}
         <button type="button" onClick={addItem} className="btn" style={{ padding: '5px 10px', fontSize: 12 }}>+ Tambah Item</button>
       </fieldset>
 
       <fieldset className="border border-dashed border-gray-300 rounded-lg p-3 mb-3">
         <legend className="text-[11px] font-bold uppercase text-golddeep px-1">Biaya &amp; Ongkir</legend>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="field"><label>Diskon Order (Rp)</label><input type="number" name="discount" value={discount} onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)} /></div>
+          <div className="field">
+            <label>Diskon Keseluruhan Order (toko)</label>
+            <div className="flex gap-1">
+              <select value={orderDiscountType} onChange={(e) => setOrderDiscountType(e.target.value as any)} className="w-24">
+                <option value="value">Rp</option>
+                <option value="percent">% / Margin</option>
+              </select>
+              <input type="number" value={orderDiscountValue} min={0} onChange={(e) => setOrderDiscountValue(parseFloat(e.target.value) || 0)} />
+            </div>
+            <p className="text-[11px] text-gray-500 mt-1">≈ {rp(calc.discount)} {orderDiscountType === 'percent' ? `(dari subtotal setelah diskon item)` : ''}</p>
+          </div>
           <div className="field"><label>Ongkir Dibebankan ke Customer (Rp)</label><input type="number" name="ship_charge" value={shipCharge} onChange={(e) => setShipCharge(parseFloat(e.target.value) || 0)} /></div>
           <div className="field"><label>Biaya Ongkir Aktual (Rp)</label><input type="number" name="ship_actual" value={shipActual} onChange={(e) => setShipActual(parseFloat(e.target.value) || 0)} /></div>
         </div>
@@ -182,8 +214,10 @@ export default function OrderForm({
       </fieldset>
 
       <div className="bg-cream border border-goldsoft rounded-lg p-4 text-sm space-y-1">
-        <Row label="Subtotal Item (Revenue Kotor)" value={rp(calc.subtotal)} />
-        <Row label="Diskon" value={'− ' + rp(discount)} />
+        <Row label="Subtotal Kotor (sebelum diskon item)" value={rp(items.reduce((s, it) => s + it.qty * it.unitPrice, 0))} />
+        <Row label="Total Diskon per Item (deal khusus)" value={'− ' + rp(calc.itemDiscountTotal)} />
+        <Row label="Subtotal Bersih" value={rp(calc.subtotal)} />
+        <Row label={`Diskon Keseluruhan Order ${orderDiscountType === 'percent' ? `(${orderDiscountValue}%)` : ''}`} value={'− ' + rp(calc.discount)} />
         <Row label="Ongkir (dibebankan ke customer)" value={rp(shipCharge)} />
         <Row label="DPP" value={rp(calc.dpp)} />
         <Row label={`PPN 11% ${ppn ? '' : '(non-PPN)'}`} value={rp(calc.ppnValue)} />

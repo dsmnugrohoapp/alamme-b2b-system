@@ -60,6 +60,40 @@ bisa menulis kode, tidak bisa mengeksekusi deployment yang butuh internet.
 
 ---
 
+## Update: Fitur Diskon Dinamis (per produk & keseluruhan order)
+
+Kalau kamu sudah punya database Supabase yang berjalan (bukan instalasi baru), jalankan
+migrasi tambahan ini sekali saja:
+
+1. Buka Supabase Dashboard > **SQL Editor** > **New query**
+2. Copy seluruh isi `supabase/migration_002_discount.sql` → paste → **Run**
+3. Update kode aplikasi kamu (lihat file-file yang berubah di bawah), lalu upload ulang ke
+   GitHub (drag semua file project lagi ke repo yang sama — GitHub otomatis mendeteksi &
+   commit hanya file yang berubah) → Vercel akan redeploy otomatis
+
+Fitur ini menambahkan:
+- **Diskon per produk** di setiap baris item order — pilih mode Persen atau Rupiah, untuk
+  deal khusus reseller/distributor per SKU
+- **Diskon keseluruhan order (toko)** — pilih mode Rupiah atau Persen/Margin, dihitung dari
+  subtotal setelah diskon per-item
+- Invoice/Quotation otomatis menampilkan kolom diskon per item dan label mode diskon order
+
+---
+
+## Update: Mode Persentase/Margin di Campaign Poin
+
+Migrasi tambahan lagi (jalankan setelah migration_002 di atas, kalau database kamu sudah berjalan):
+
+1. Buka Supabase Dashboard > **SQL Editor** > **New query**
+2. Copy seluruh isi `supabase/migration_003_campaign_percent.sql` → paste → **Run**
+3. Upload ulang seluruh folder project ke GitHub (sama seperti sebelumnya)
+
+Sekarang tiap campaign poin punya pilihan **Mode Nilai**:
+- **Nilai Tetap** — cara lama: "Rp per 1 Poin" (untuk tipe Nilai Transaksi) atau "Poin tetap per unit" (untuk tipe Produk Spesial)
+- **Persentase / Margin** — baru: "X% dari nilai transaksi jadi poin" atau "X% dari harga produk per unit jadi poin", dikonversi otomatis memakai Nilai Tukar Poin di menu Pengaturan
+
+---
+
 ## Struktur folder penting
 
 ```

@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { computeOrderCalc, computePoints, addDays, termDays, genDocNo, todayStr } from '@/lib/utils';
 
-type ItemInput = { productId: string; qty: number; unitPrice: number };
+type ItemInput = { productId: string; qty: number; unitPrice: number; discountType: 'percent' | 'value'; discountValue: number };
 
 async function nextCounter(supabase: any, key: string) {
   const { data } = await supabase.from('app_settings').select('value').eq('key', key).single();
@@ -26,12 +26,13 @@ export async function saveOrder(formData: FormData) {
 
   const date = (formData.get('order_date') as string) || todayStr();
   const payTerm = formData.get('pay_term') as string;
-  const discount = parseFloat((formData.get('discount') as string) || '0');
+  const orderDiscountType = ((formData.get('discount_type') as string) || 'value') as 'percent' | 'value';
+  const orderDiscountValue = parseFloat((formData.get('discount_value') as string) || '0');
   const shipCharge = parseFloat((formData.get('ship_charge') as string) || '0');
   const shipActual = parseFloat((formData.get('ship_actual') as string) || '0');
   const otherCost = parseFloat((formData.get('other_cost') as string) || '0');
   const ppn = formData.get('ppn') === '1';
-  const calc = computeOrderCalc(items, discount, shipCharge, shipActual, otherCost, ppn);
+  const calc = computeOrderCalc(items, orderDiscountType, orderDiscountValue, shipCharge, shipActual, otherCost, ppn);
 
   const shipDiffer = formData.get('ship_differ') === '1';
   const shipTo = shipDiffer
@@ -55,8 +56,10 @@ export async function saveOrder(formData: FormData) {
       };
 
   const { data: campaigns } = await supabase.from('campaigns').select('*');
+  const { data: pointValueRow } = await supabase.from('app_settings').select('value').eq('key', 'point_value').single();
+  const pointValue = (pointValueRow?.value as number) || 1000;
   const pts = customer?.type === 'Reseller'
-    ? computePoints(campaigns || [], customer.type, items, calc.subtotal, date)
+    ? computePoints(campaigns || [], customer.type, items, calc.subtotal, date, pointValue)
     : { total: 0, breakdown: [] };
 
   const orderPayload: any = {
@@ -65,7 +68,8 @@ export async function saveOrder(formData: FormData) {
     order_date: date,
     pay_term: payTerm,
     status: formData.get('status') as string,
-    discount, ship_charge: shipCharge, ship_actual: shipActual, other_cost: otherCost, ppn,
+    discount: calc.discount, discount_type: orderDiscountType, discount_value: orderDiscountValue,
+    ship_charge: shipCharge, ship_actual: shipActual, other_cost: otherCost, ppn,
     due_date: addDays(date, termDays(payTerm)),
     subtotal: calc.subtotal, grand_total: calc.grandTotal, net_profit: calc.netProfit, net_margin: calc.netMargin,
     points_earned: pts.total,
@@ -102,7 +106,10 @@ export async function saveOrder(formData: FormData) {
     }
   }
 
-  const itemRows = items.map((it) => ({ order_id: orderId, product_id: it.productId, qty: it.qty, unit_price: it.unitPrice }));
+  const itemRows = items.map((it) => ({
+    order_id: orderId, product_id: it.productId, qty: it.qty, unit_price: it.unitPrice,
+    discount_type: it.discountType || 'percent', discount_value: it.discountValue || 0,
+  }));
   await supabase.from('order_items').insert(itemRows);
 
   revalidatePath('/orders');

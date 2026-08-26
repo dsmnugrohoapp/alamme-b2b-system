@@ -26,39 +26,66 @@ export function genDocNo(prefix: string, counter: number) {
   return `${prefix}/ALM/${y}${m}/${String(counter).padStart(3, '0')}`;
 }
 
-export type OrderItemInput = { productId: string; qty: number; unitPrice: number };
+export type OrderItemInput = {
+  productId: string;
+  qty: number;
+  unitPrice: number;
+  discountType: 'percent' | 'value'; // diskon deal khusus per produk (persen dari harga, atau nominal Rp per baris)
+  discountValue: number;
+};
 
-// Kalkulator inti — fokus revenue & biaya operasional (tanpa HPP), sama seperti versi Artifact sebelumnya.
+// Hitung diskon & subtotal bersih satu baris item (setelah diskon deal khusus per produk).
+export function computeLineTotal(item: OrderItemInput) {
+  const gross = item.qty * item.unitPrice;
+  let discountAmount = item.discountType === 'percent' ? (gross * (item.discountValue || 0)) / 100 : item.discountValue || 0;
+  discountAmount = Math.max(0, Math.min(discountAmount, gross));
+  return { gross, discountAmount, net: gross - discountAmount };
+}
+
+// Kalkulator inti — fokus revenue & biaya operasional (tanpa HPP).
+// discount order-level bisa dalam mode 'value' (Rp) atau 'percent' (dari subtotal setelah diskon per-item).
 export function computeOrderCalc(
   items: OrderItemInput[],
-  discount: number,
+  orderDiscountType: 'percent' | 'value',
+  orderDiscountValue: number,
   shipCharge: number,
   shipActual: number,
   otherCost: number,
   ppn: boolean
 ) {
-  const subtotal = items.reduce((s, it) => s + it.qty * it.unitPrice, 0);
+  const lineResults = items.map(computeLineTotal);
+  const itemDiscountTotal = lineResults.reduce((s, l) => s + l.discountAmount, 0);
+  const subtotal = lineResults.reduce((s, l) => s + l.net, 0); // subtotal setelah diskon per-item (deal khusus produk)
+
+  const orderDiscountAmount =
+    orderDiscountType === 'percent' ? (subtotal * (orderDiscountValue || 0)) / 100 : orderDiscountValue || 0;
+  const discount = Math.max(0, Math.min(orderDiscountAmount, subtotal));
+
   const dpp = subtotal - discount + shipCharge;
   const ppnValue = ppn ? dpp * 0.11 : 0;
   const grandTotal = dpp + ppnValue;
   const revenueBersih = subtotal - discount;
   const netProfit = revenueBersih + (shipCharge - shipActual) - otherCost;
   const netMargin = revenueBersih > 0 ? (netProfit / revenueBersih) * 100 : 0;
-  return { subtotal, dpp, ppnValue, grandTotal, revenueBersih, netProfit, netMargin };
+  return { subtotal, itemDiscountTotal, discount, dpp, ppnValue, grandTotal, revenueBersih, netProfit, netMargin };
 }
 
 export type Campaign = {
-  id: string; name: string; type: string; rp_per_point: number; points_per_unit: number;
+  id: string; name: string; type: string; value_mode?: string;
+  rp_per_point: number; points_per_unit: number; percent_value?: number;
   product_ids: string[]; customer_types: string[]; start_date: string | null; end_date: string | null; active: boolean;
 };
 
 // Engine poin — dijalankan saat order disimpan, terhadap campaign yang aktif & berlaku untuk tipe customer & tanggal order.
+// value_mode 'value'   -> revenue: Rp per 1 poin (rp_per_point) | product: poin tetap per unit (points_per_unit)
+// value_mode 'percent' -> revenue: % dari nilai transaksi | product: % dari harga produk per unit — dikonversi via pointValue (Rp per 1 poin, dari Pengaturan)
 export function computePoints(
   campaigns: Campaign[],
   customerType: string,
   items: OrderItemInput[],
   subtotal: number,
-  orderDate: string
+  orderDate: string,
+  pointValue: number = 1000
 ) {
   const breakdown: { campaign: string; points: number }[] = [];
   campaigns.forEach((camp) => {
@@ -66,12 +93,23 @@ export function computePoints(
     if (camp.customer_types?.length && !camp.customer_types.includes(customerType)) return;
     if (camp.start_date && orderDate < camp.start_date) return;
     if (camp.end_date && orderDate > camp.end_date) return;
+    const mode = camp.value_mode || 'value';
     let pts = 0;
-    if (camp.type === 'revenue' && camp.rp_per_point > 0) {
-      pts = Math.floor(subtotal / camp.rp_per_point);
+    if (camp.type === 'revenue') {
+      if (mode === 'percent') {
+        pts = pointValue > 0 ? Math.floor((subtotal * (camp.percent_value || 0)) / 100 / pointValue) : 0;
+      } else if (camp.rp_per_point > 0) {
+        pts = Math.floor(subtotal / camp.rp_per_point);
+      }
     } else if (camp.type === 'product') {
       items.forEach((it) => {
-        if ((camp.product_ids || []).includes(it.productId)) pts += it.qty * (camp.points_per_unit || 0);
+        if (!(camp.product_ids || []).includes(it.productId)) return;
+        if (mode === 'percent') {
+          const lineRevenue = it.qty * it.unitPrice;
+          pts += pointValue > 0 ? Math.floor((lineRevenue * (camp.percent_value || 0)) / 100 / pointValue) : 0;
+        } else {
+          pts += it.qty * (camp.points_per_unit || 0);
+        }
       });
     }
     if (pts > 0) breakdown.push({ campaign: camp.name, points: pts });

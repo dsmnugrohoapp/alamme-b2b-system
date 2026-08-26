@@ -33,11 +33,15 @@ export default async function CampaignsPage() {
           <thead><tr><th>Campaign</th><th>Tipe</th><th>Aturan</th><th>Berlaku Untuk</th><th>Periode</th><th>Status</th><th></th></tr></thead>
           <tbody>
             {(!campaigns || campaigns.length === 0) && <tr><td colSpan={7} className="text-center text-gray-400 py-10">Belum ada campaign poin.</td></tr>}
-            {(campaigns || []).map((c: any) => (
+            {(campaigns || []).map((c: any) => {
+              const rule = c.value_mode === 'percent'
+                ? `${c.percent_value}% ${c.type === 'revenue' ? 'dari nilai transaksi' : 'dari harga produk/unit'}`
+                : c.type === 'revenue' ? `1 poin / ${rp(c.rp_per_point)}` : `${c.points_per_unit} poin/unit`;
+              return (
               <tr key={c.id}>
                 <td><b>{c.name}</b>{c.notes && <div className="text-[11px] text-gray-400">{c.notes}</div>}</td>
                 <td>{c.type === 'revenue' ? 'Nilai Transaksi' : 'Produk Spesial'}</td>
-                <td>{c.type === 'revenue' ? `1 poin / ${rp(c.rp_per_point)}` : `${c.points_per_unit} poin/unit (${(c.product_ids || []).length} SKU)`}</td>
+                <td>{rule}{c.type === 'product' && ` (${(c.product_ids || []).length} SKU)`}</td>
                 <td>{(c.customer_types || []).join(', ')}</td>
                 <td>{c.start_date || '-'} s.d {c.end_date || '∞'}</td>
                 <td>{c.active ? <span className="badge bg-green-50 text-green-700">Aktif</span> : <span className="badge bg-gray-100 text-gray-600">Nonaktif</span>}</td>
@@ -51,7 +55,8 @@ export default async function CampaignsPage() {
                   </form>
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>

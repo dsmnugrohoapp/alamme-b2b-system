@@ -10,8 +10,10 @@ export async function upsertCampaign(formData: FormData) {
   const payload = {
     name: formData.get('name') as string,
     type: formData.get('type') as string,
+    value_mode: (formData.get('value_mode') as string) || 'value',
     rp_per_point: parseFloat((formData.get('rp_per_point') as string) || '0'),
     points_per_unit: parseFloat((formData.get('points_per_unit') as string) || '0'),
+    percent_value: parseFloat((formData.get('percent_value') as string) || '0'),
     product_ids: productIds,
     customer_types: customerTypes.length ? customerTypes : ['Reseller'],
     start_date: (formData.get('start_date') as string) || null,

@@ -114,19 +114,26 @@ export default function DocClient({ order, items, companies, pointValue }: { ord
         ) : (
           <>
             <table className="w-full border-collapse mb-4">
-              <thead><tr className="bg-ink text-white text-[11px] uppercase"><th className="p-2.5 text-left">SKU</th><th className="p-2.5 text-left">Deskripsi</th><th className="p-2.5 text-left">Qty</th><th className="p-2.5 text-left">Harga</th><th className="p-2.5 text-left">Jumlah</th></tr></thead>
+              <thead><tr className="bg-ink text-white text-[11px] uppercase"><th className="p-2.5 text-left">SKU</th><th className="p-2.5 text-left">Deskripsi</th><th className="p-2.5 text-left">Qty</th><th className="p-2.5 text-left">Harga</th><th className="p-2.5 text-left">Diskon</th><th className="p-2.5 text-left">Jumlah</th></tr></thead>
               <tbody>
-                {items.map((it: any) => (
-                  <tr key={it.id} className="border-b border-gray-200">
-                    <td className="p-2.5 font-mono text-xs">{it.products?.sku}</td><td className="p-2.5 text-xs">{it.products?.name}</td>
-                    <td className="p-2.5 text-xs">{it.qty} {it.products?.uom}</td><td className="p-2.5 text-xs">{rp(it.unit_price)}</td><td className="p-2.5 text-xs">{rp(it.qty * it.unit_price)}</td>
-                  </tr>
-                ))}
+                {items.map((it: any) => {
+                  const gross = it.qty * it.unit_price;
+                  const discAmt = it.discount_type === 'percent' ? (gross * (it.discount_value || 0)) / 100 : it.discount_value || 0;
+                  const net = Math.max(0, gross - Math.min(discAmt, gross));
+                  const discLabel = it.discount_value > 0 ? (it.discount_type === 'percent' ? `${it.discount_value}%` : rp(it.discount_value)) : '-';
+                  return (
+                    <tr key={it.id} className="border-b border-gray-200">
+                      <td className="p-2.5 font-mono text-xs">{it.products?.sku}</td><td className="p-2.5 text-xs">{it.products?.name}</td>
+                      <td className="p-2.5 text-xs">{it.qty} {it.products?.uom}</td><td className="p-2.5 text-xs">{rp(it.unit_price)}</td>
+                      <td className="p-2.5 text-xs">{discLabel}</td><td className="p-2.5 text-xs">{rp(net)}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
             <div className="w-72 ml-auto text-sm">
-              <div className="flex justify-between py-1"><span>Subtotal</span><span>{rp(order.subtotal)}</span></div>
-              <div className="flex justify-between py-1"><span>Diskon</span><span>− {rp(order.discount)}</span></div>
+              <div className="flex justify-between py-1"><span>Subtotal Bersih</span><span>{rp(order.subtotal)}</span></div>
+              <div className="flex justify-between py-1"><span>Diskon Order {order.discount_type === 'percent' ? `(${order.discount_value}%)` : ''}</span><span>− {rp(order.discount)}</span></div>
               <div className="flex justify-between py-1"><span>Ongkir</span><span>{rp(order.ship_charge)}</span></div>
               <div className="flex justify-between py-1"><span>DPP</span><span>{rp(order.subtotal - order.discount + order.ship_charge)}</span></div>
               <div className="flex justify-between py-1"><span>PPN 11%</span><span>{rp(order.ppn ? (order.subtotal - order.discount + order.ship_charge) * 0.11 : 0)}</span></div>
