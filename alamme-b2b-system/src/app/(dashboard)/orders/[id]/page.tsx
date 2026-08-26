@@ -1,0 +1,28 @@
+import { createClient } from '@/lib/supabase/server';
+import OrderForm from '../OrderForm';
+import { notFound } from 'next/navigation';
+
+export const dynamic = 'force-dynamic';
+
+export default async function EditOrderPage({ params }: { params: { id: string } }) {
+  const supabase = createClient();
+  const [{ data: order }, { data: items }, { data: products }, { data: customers }, { data: campaigns }] = await Promise.all([
+    supabase.from('orders').select('*').eq('id', params.id).single(),
+    supabase.from('order_items').select('product_id, qty, unit_price').eq('order_id', params.id),
+    supabase.from('products').select('id, sku, name, uom, price').order('name'),
+    supabase.from('customers').select('id, name, type, city, pay_term, pkp, phone, pic').order('name'),
+    supabase.from('campaigns').select('*'),
+  ]);
+  if (!order) notFound();
+  return (
+    <div>
+      <div className="mb-5">
+        <div className="text-[11px] uppercase tracking-wide text-golddeep font-bold">Transaksi</div>
+        <h1 className="font-serif text-2xl font-semibold">Edit Order — {order.order_no}</h1>
+      </div>
+      <div className="card max-w-4xl">
+        <OrderForm products={products || []} customers={customers || []} campaigns={(campaigns as any) || []} order={order} orderItems={items || []} />
+      </div>
+    </div>
+  );
+}
