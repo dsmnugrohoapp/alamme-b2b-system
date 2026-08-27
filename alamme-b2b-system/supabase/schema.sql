@@ -17,7 +17,7 @@ create table if not exists profiles (
 create table if not exists customers (
   id uuid primary key default gen_random_uuid(),
   name text not null,
-  type text not null default 'Reseller', -- Hotel | Restoran | Cafe | Distributor | Reseller
+  type text not null default 'Reseller', -- Direct Customer | Hotel | Restoran | Cafe | Distributor | Reseller
   segment text not null default 'Domestik', -- Domestik | Mancanegara
   province text, province_id text,
   city text, city_id text,

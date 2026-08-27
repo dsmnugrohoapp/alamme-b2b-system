@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { upsertCampaign } from '@/lib/actions/campaigns';
 
-const TYPES = ['Hotel', 'Restoran', 'Cafe', 'Distributor', 'Reseller'];
+const TYPES = ['Direct Customer', 'Hotel', 'Restoran', 'Cafe', 'Distributor', 'Reseller'];
 
 export default function CampaignForm({ mode, campaign, products }: { mode: 'create' | 'edit'; campaign?: any; products: any[] }) {
   const [open, setOpen] = useState(false);

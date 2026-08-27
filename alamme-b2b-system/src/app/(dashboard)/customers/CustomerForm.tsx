@@ -24,7 +24,7 @@ export default function CustomerForm({ mode, customer }: { mode: 'create' | 'edi
                 <div className="field"><label>Nama Customer</label><input name="name" defaultValue={customer?.name} required /></div>
                 <div className="field"><label>Tipe</label>
                   <select name="type" defaultValue={customer?.type || 'Hotel'}>
-                    <option>Hotel</option><option>Restoran</option><option>Cafe</option><option>Distributor</option><option>Reseller</option>
+                    <option>Direct Customer</option><option>Hotel</option><option>Restoran</option><option>Cafe</option><option>Distributor</option><option>Reseller</option>
                   </select>
                 </div>
                 <div className="field"><label>Segmen</label>

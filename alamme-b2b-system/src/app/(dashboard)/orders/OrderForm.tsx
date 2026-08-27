@@ -161,7 +161,7 @@ export default function OrderForm({
       <fieldset className="border border-dashed border-gray-300 rounded-lg p-3 mb-3">
         <legend className="text-[11px] font-bold uppercase text-golddeep px-1">Item Order</legend>
         <p className="text-xs text-gray-500 mb-2">Diskon per produk untuk deal khusus reseller/distributor — pilih Persen atau Rp per baris.</p>
-        <div className="hidden md:grid grid-cols-[2fr_70px_110px_130px_120px_30px] gap-2 text-[10.5px] uppercase text-gray-500 font-bold mb-1.5">
+        <div className="hidden md:grid grid-cols-[2fr_60px_100px_170px_110px_28px] gap-2 text-[10.5px] uppercase text-gray-500 font-bold mb-1.5">
           <div>Produk</div><div>Qty</div><div>Harga Jual/unit</div><div>Diskon</div><div>Subtotal Bersih</div><div></div>
         </div>
         {items.length === 0 && <p className="text-sm text-gray-400 mb-2">Belum ada item.</p>}
@@ -172,21 +172,21 @@ export default function OrderForm({
             return { gross, net: Math.max(0, gross - Math.min(disc, gross)) };
           })();
           return (
-            <div key={idx} className="grid grid-cols-1 md:grid-cols-[2fr_70px_110px_130px_120px_30px] gap-2 mb-2 items-center border md:border-0 rounded-lg p-2 md:p-0">
+            <div key={idx} className="grid grid-cols-1 md:grid-cols-[2fr_60px_100px_170px_110px_28px] gap-2 mb-2 items-center border md:border-0 rounded-lg p-2.5 md:p-0">
               <select value={it.productId} onChange={(e) => updateItem(idx, 'productId', e.target.value)}>
                 {products.map((p) => <option key={p.id} value={p.id}>[{p.sku}] {p.name}</option>)}
               </select>
               <input type="number" value={it.qty} min={0} onChange={(e) => updateItem(idx, 'qty', e.target.value)} />
               <input type="number" value={it.unitPrice} onChange={(e) => updateItem(idx, 'unitPrice', e.target.value)} />
-              <div className="flex gap-1">
-                <select value={it.discountType} onChange={(e) => updateItem(idx, 'discountType', e.target.value)} className="!px-1.5 !text-xs w-16">
+              <div className="flex gap-1.5">
+                <select value={it.discountType} onChange={(e) => updateItem(idx, 'discountType', e.target.value)} className="!px-1.5 !py-2 !text-xs w-[58px] shrink-0">
                   <option value="percent">%</option>
                   <option value="value">Rp</option>
                 </select>
-                <input type="number" value={it.discountValue} min={0} onChange={(e) => updateItem(idx, 'discountValue', e.target.value)} placeholder="0" className="!text-xs" />
+                <input type="number" value={it.discountValue} min={0} onChange={(e) => updateItem(idx, 'discountValue', e.target.value)} placeholder="0" className="!text-xs !py-2 min-w-0 flex-1" />
               </div>
-              <div className="font-mono text-xs pt-2">{rp(line.net)}</div>
-              <button type="button" onClick={() => removeItem(idx)} className="text-red-600 text-sm">✕</button>
+              <div className="font-mono text-xs text-right md:text-left pt-0 md:pt-2">{rp(line.net)}</div>
+              <button type="button" onClick={() => removeItem(idx)} className="text-red-600 text-sm justify-self-end md:justify-self-auto">✕</button>
             </div>
           );
         })}
