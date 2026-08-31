@@ -13,7 +13,7 @@ const STATUS_BADGE: Record<string, string> = { 'Baru': 'bg-gray-100 text-gray-60
 export default async function LeadsPage() {
   const supabase = createClient();
   const [{ data: leads }, { data: customers }, { data: products }] = await Promise.all([
-    supabase.from('leads').select('*, customers(name, type, city), lead_items(id, product_id, current_brand, usual_price, frequency, qty_per_frequency, products(sku, name, uom)), source_order:orders!leads_source_order_id_fkey(order_no), converted_order:orders!leads_converted_order_id_fkey(order_no)').order('created_at', { ascending: false }),
+    supabase.from('leads').select('*, customers(name, type, city), lead_items(id, product_id, current_brand, usual_price, frequency, qty_per_frequency, unit, products(sku, name, uom)), source_order:orders!leads_source_order_id_fkey(order_no), converted_order:orders!leads_converted_order_id_fkey(order_no)').order('created_at', { ascending: false }),
     supabase.from('customers').select('id, name, type, city, pic, phone, email').order('name'),
     supabase.from('products').select('id, sku, name, uom').order('name'),
   ]);
@@ -57,7 +57,7 @@ export default async function LeadsPage() {
                     {(l.lead_items || []).length === 0 && <span className="text-gray-400">-</span>}
                     {(l.lead_items || []).map((it: any) => (
                       <div key={it.id} className="mb-1">
-                        {it.products?.name} <span className="text-gray-400">({it.qty_per_frequency}/{it.frequency}{it.current_brand ? `, biasa pakai: ${it.current_brand}` : ''}{it.usual_price ? `, ${rp(it.usual_price)}` : ''})</span>
+                        {it.products?.name} <span className="text-gray-400">({it.qty_per_frequency}{it.unit ? ` ${it.unit}` : ''}/{it.frequency}{it.current_brand ? `, biasa pakai: ${it.current_brand}` : ''}{it.usual_price ? `, ${rp(it.usual_price)}` : ''})</span>
                       </div>
                     ))}
                   </td>

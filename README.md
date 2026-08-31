@@ -60,6 +60,19 @@ bisa menulis kode, tidak bisa mengeksekusi deployment yang butuh internet.
 
 ---
 
+## Update: Satuan Kebutuhan di Produk yang Diminati (Leads)
+
+Migrasi tambahan (jalankan setelah migration_004_leads.sql):
+
+1. Supabase → **SQL Editor** → copy isi `supabase/migration_006_lead_item_unit.sql` → **Run**
+2. Upload ulang folder project ke GitHub seperti biasa
+
+Sekarang tiap produk yang diminati di form Leads punya kolom **Satuan** (kg/pcs/liter/karton/dll) —
+otomatis terisi dari satuan standar produk saat dipilih, tapi bisa diganti manual kalau kebutuhan
+customer beda satuan dari kemasan standar. Satuannya juga langsung terlihat di tabel daftar Leads.
+
+---
+
 ## Update: Analisis Leads di Database + Laporan Excel
 
 Migrasi tambahan (jalankan setelah migration_004_leads.sql):

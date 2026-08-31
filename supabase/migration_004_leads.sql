@@ -27,6 +27,7 @@ create table if not exists lead_items (
   usual_price numeric default 0,   -- harga yang biasa dibayar customer untuk produk ini
   frequency text not null default 'Bulanan', -- 'Harian' | 'Mingguan' | 'Bulanan'
   qty_per_frequency numeric default 0,       -- jumlah kebutuhan per periode di atas
+  unit text default '',        -- kg, pcs, liter, karton, dst — satuan kebutuhan customer
   notes text
 );
 

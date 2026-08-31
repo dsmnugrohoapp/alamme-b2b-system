@@ -245,6 +245,7 @@ create table if not exists lead_items (
   usual_price numeric default 0,
   frequency text not null default 'Bulanan',
   qty_per_frequency numeric default 0,
+  unit text default '', -- kg, pcs, liter, karton, dst — satuan kebutuhan customer
   notes text
 );
 

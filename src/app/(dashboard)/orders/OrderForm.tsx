@@ -186,14 +186,14 @@ export default function OrderForm({
               <select value={it.productId} onChange={(e) => updateItem(idx, 'productId', e.target.value)}>
                 {products.map((p) => <option key={p.id} value={p.id}>[{p.sku}] {p.name}</option>)}
               </select>
-              <input type="number" value={it.qty} min={0} onChange={(e) => updateItem(idx, 'qty', e.target.value)} />
+              <input type="number" step="0.01" value={it.qty} min={0} onChange={(e) => updateItem(idx, 'qty', e.target.value)} />
               <input type="number" value={it.unitPrice} onChange={(e) => updateItem(idx, 'unitPrice', e.target.value)} />
               <div className="flex gap-1.5">
                 <select value={it.discountType} onChange={(e) => updateItem(idx, 'discountType', e.target.value)} className="!px-1.5 !py-2 !text-xs w-[58px] shrink-0">
                   <option value="percent">%</option>
                   <option value="value">Rp</option>
                 </select>
-                <input type="number" value={it.discountValue} min={0} onChange={(e) => updateItem(idx, 'discountValue', e.target.value)} placeholder="0" className="!text-xs !py-2 min-w-0 flex-1" />
+                <input type="number" step="0.01" value={it.discountValue} min={0} onChange={(e) => updateItem(idx, 'discountValue', e.target.value)} placeholder="0" className="!text-xs !py-2 min-w-0 flex-1" />
               </div>
               <div className="font-mono text-xs text-right md:text-left pt-0 md:pt-2">{rp(line.net)}</div>
               <button type="button" onClick={() => removeItem(idx)} className="text-red-600 text-sm justify-self-end md:justify-self-auto">✕</button>
@@ -213,7 +213,7 @@ export default function OrderForm({
                 <option value="value">Rp</option>
                 <option value="percent">% / Margin</option>
               </select>
-              <input type="number" value={orderDiscountValue} min={0} onChange={(e) => setOrderDiscountValue(parseFloat(e.target.value) || 0)} />
+              <input type="number" step="0.01" value={orderDiscountValue} min={0} onChange={(e) => setOrderDiscountValue(parseFloat(e.target.value) || 0)} />
             </div>
             <p className="text-[11px] text-gray-500 mt-1">≈ {rp(calc.discount)} {orderDiscountType === 'percent' ? `(dari subtotal setelah diskon item)` : ''}</p>
           </div>

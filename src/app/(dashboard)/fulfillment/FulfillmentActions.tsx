@@ -92,7 +92,7 @@ function ReturnModal({ orderId, items, onClose }: { orderId: string; items: any[
         {items.map((it: any) => (
           <div key={it.product_id} className="field mb-0">
             <label>{it.products?.name} (dipesan: {it.qty})</label>
-            <input type="number" min={0} max={it.qty} defaultValue={0} onChange={(e) => setQtys({ ...qtys, [it.product_id]: parseFloat(e.target.value) || 0 })} />
+            <input type="number" step="0.01" min={0} max={it.qty} defaultValue={0} onChange={(e) => setQtys({ ...qtys, [it.product_id]: parseFloat(e.target.value) || 0 })} />
           </div>
         ))}
       </div>
