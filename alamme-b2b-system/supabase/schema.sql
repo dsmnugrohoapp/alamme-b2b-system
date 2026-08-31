@@ -220,6 +220,60 @@ create policy "authenticated all company_settings" on company_settings for all u
 create policy "authenticated all app_settings" on app_settings for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
 -- ============================================================
+-- LEADS MANAGEMENT
+-- ============================================================
+create table if not exists leads (
+  id uuid primary key default gen_random_uuid(),
+  customer_id uuid references customers(id) not null,
+  contact_name text,
+  contact_phone text,
+  contact_email text,
+  deal_rating text not null default 'Warm', -- 'Hot' | 'Warm' | 'Cold'
+  status text not null default 'Baru',      -- 'Baru' | 'Proses Follow-up' | 'Deal' | 'Gagal/Batal'
+  next_follow_up_date date,
+  source_order_id uuid references orders(id),
+  converted_order_id uuid references orders(id),
+  notes text,
+  created_at timestamptz default now()
+);
+
+create table if not exists lead_items (
+  id uuid primary key default gen_random_uuid(),
+  lead_id uuid references leads(id) on delete cascade,
+  product_id uuid references products(id),
+  current_brand text,
+  usual_price numeric default 0,
+  frequency text not null default 'Bulanan',
+  qty_per_frequency numeric default 0,
+  notes text
+);
+
+alter table leads enable row level security;
+alter table lead_items enable row level security;
+create policy "authenticated all leads" on leads for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "authenticated all lead_items" on lead_items for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+
+-- ============================================================
+-- VIEW ANALISIS LEADS
+-- ============================================================
+create or replace view v_leads_funnel as
+select status, deal_rating, count(*) as jumlah_leads
+from leads group by status, deal_rating order by status, deal_rating;
+
+create or replace view v_leads_potential_value as
+select
+  l.id as lead_id, c.name as customer_name, l.status, l.deal_rating, l.next_follow_up_date,
+  coalesce(sum(
+    li.usual_price * li.qty_per_frequency * case li.frequency
+      when 'Harian' then 30 when 'Mingguan' then 4.33 else 1 end
+  ), 0) as estimasi_nilai_bulanan
+from leads l
+left join customers c on c.id = l.customer_id
+left join lead_items li on li.lead_id = l.id
+group by l.id, c.name, l.status, l.deal_rating, l.next_follow_up_date
+order by estimasi_nilai_bulanan desc;
+
+-- ============================================================
 -- TRIGGER: auto-create profile row saat ada user baru daftar
 -- ============================================================
 create or replace function public.handle_new_user()

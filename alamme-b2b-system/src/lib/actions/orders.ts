@@ -104,6 +104,11 @@ export async function saveOrder(formData: FormData) {
       await supabase.from('customers').update({ points: (customer.points || 0) + pts.total }).eq('id', customerId);
       await supabase.from('points_ledger').insert({ customer_id: customerId, order_id: orderId, points: pts.total, type: 'earn', notes: 'Order ' + orderNo });
     }
+    const leadId = formData.get('lead_id') as string;
+    if (leadId) {
+      await supabase.from('leads').update({ status: 'Deal', converted_order_id: orderId }).eq('id', leadId);
+      revalidatePath('/leads');
+    }
   }
 
   const itemRows = items.map((it) => ({

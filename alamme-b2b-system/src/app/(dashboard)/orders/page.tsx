@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { deleteOrder, markPaid } from '@/lib/actions/orders';
+import { sendOrderToLeads } from '@/lib/actions/leads';
 import { rp, todayStr } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -50,6 +51,11 @@ export default async function OrdersPage() {
                   {o.status !== 'Lunas' && (
                     <form action={markPaid.bind(null, o.id)} className="inline">
                       <button className="btn" style={{ padding: '5px 10px', fontSize: 12 }}>Lunas</button>
+                    </form>
+                  )}{' '}
+                  {(o.status === 'Batal' || o.fulfillment_status === 'Retur Total') && (
+                    <form action={sendOrderToLeads.bind(null, o.id)} className="inline">
+                      <button className="btn btn-gold" style={{ padding: '5px 10px', fontSize: 12 }}>Kirim ke Leads</button>
                     </form>
                   )}{' '}
                   <form action={deleteOrder.bind(null, o.id)} className="inline">

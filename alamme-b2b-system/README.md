@@ -60,6 +60,44 @@ bisa menulis kode, tidak bisa mengeksekusi deployment yang butuh internet.
 
 ---
 
+## Update: Analisis Leads di Database + Laporan Excel
+
+Migrasi tambahan (jalankan setelah migration_004_leads.sql):
+
+1. Supabase → **SQL Editor** → copy isi `supabase/migration_005_leads_analytics.sql` → **Run**
+2. Upload ulang folder project ke GitHub seperti biasa
+
+Yang ditambahkan:
+- **Menu Laporan** sekarang punya kartu **Laporan Leads / Sales Pipeline** — download Excel berisi
+  semua leads lengkap dengan estimasi nilai potensial per bulan (dihitung otomatis dari harga biasa
+  beli × jumlah × frekuensi kebutuhan), rating, status, dan follow-up berikutnya
+- **2 VIEW baru langsung di database** (bisa dibuka di Supabase → Table Editor, tanpa perlu lewat
+  aplikasi): `v_leads_funnel` (jumlah leads per status & rating) dan `v_leads_potential_value`
+  (ranking leads berdasarkan estimasi nilai bulanan — berguna untuk prioritas follow-up)
+
+---
+
+## Update: Leads Management (Sales Pipeline)
+
+Migrasi tambahan lagi (jalankan setelah migration_002 dan migration_003, kalau database kamu sudah berjalan):
+
+1. Buka Supabase Dashboard > **SQL Editor** > **New query**
+2. Copy seluruh isi `supabase/migration_004_leads.sql` → paste → **Run**
+3. Upload ulang seluruh folder project ke GitHub (sama seperti sebelumnya)
+
+Fitur baru — menu **Leads Management**:
+- Catat prospek customer: produk yang diminati, merek yang biasa dipakai sekarang, harga biasa
+  dibeli, kebutuhan per hari/minggu/bulan, dan rating potensi deal (Hot/Warm/Cold)
+- Customer di lead memakai data customer yang sama dengan menu Customer — tinggal pilih dari daftar
+- PIC/kontak untuk deal ini terisi otomatis dari data customer, tapi bisa diganti kalau beda orang
+- **Order yang gagal/dibatalkan** (status Batal, atau retur total) bisa dikirim langsung jadi Lead
+  baru untuk di-follow-up lagi — tombol "Kirim ke Leads" muncul di menu Order
+- **Lead yang sudah Deal** bisa langsung dikonversi jadi Order baru (data customer & produk
+  otomatis terisi) lewat tombol "Convert ke Order" — begitu order disimpan, lead otomatis
+  tertandai selesai dan tertaut ke order tersebut
+
+---
+
 ## Update: Fitur Diskon Dinamis (per produk & keseluruhan order)
 
 Kalau kamu sudah punya database Supabase yang berjalan (bukan instalasi baru), jalankan

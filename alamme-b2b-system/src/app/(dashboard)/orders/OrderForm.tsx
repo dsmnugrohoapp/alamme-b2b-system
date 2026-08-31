@@ -10,20 +10,23 @@ type Item = OrderItemInput;
 
 export default function OrderForm({
   products, customers, campaigns, order, orderItems, pointValue = 1000,
+  prefillCustomerId, prefillItems, leadId,
 }: {
   products: Product[]; customers: Customer[]; campaigns: Campaign[]; pointValue?: number;
   order?: any; orderItems?: { product_id: string; qty: number; unit_price: number; discount_type?: string; discount_value?: number }[];
+  prefillCustomerId?: string; prefillItems?: Item[]; leadId?: string;
 }) {
-  const [customerId, setCustomerId] = useState(order?.customer_id || '');
+  const [customerId, setCustomerId] = useState(order?.customer_id || prefillCustomerId || '');
   const [customerQuery, setCustomerQuery] = useState(
-    order ? customers.find((c) => c.id === order.customer_id)?.name || '' : ''
+    order ? customers.find((c) => c.id === order.customer_id)?.name || ''
+      : prefillCustomerId ? customers.find((c) => c.id === prefillCustomerId)?.name || '' : ''
   );
   const [showResults, setShowResults] = useState(false);
   const [items, setItems] = useState<Item[]>(
     orderItems?.map((it) => ({
       productId: it.product_id, qty: Number(it.qty), unitPrice: Number(it.unit_price),
       discountType: (it.discount_type as 'percent' | 'value') || 'percent', discountValue: Number(it.discount_value || 0),
-    })) || []
+    })) || prefillItems || []
   );
   const [orderDiscountType, setOrderDiscountType] = useState<'percent' | 'value'>((order?.discount_type as any) || 'value');
   const [orderDiscountValue, setOrderDiscountValue] = useState(order?.discount_value || 0);
@@ -87,6 +90,13 @@ export default function OrderForm({
       <input type="hidden" name="ship_differ" value={shipDiffer ? '1' : '0'} />
       <input type="hidden" name="discount_type" value={orderDiscountType} />
       <input type="hidden" name="discount_value" value={orderDiscountValue} />
+      {leadId && <input type="hidden" name="lead_id" value={leadId} />}
+
+      {leadId && (
+        <div className="bg-goldsoft border border-gold text-golddeep text-xs font-semibold rounded-lg px-3.5 py-2.5 mb-3">
+          ★ Order ini dibuat dari Leads — begitu disimpan, lead terkait otomatis ditandai <b>Deal</b>.
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
         <div className="field relative">

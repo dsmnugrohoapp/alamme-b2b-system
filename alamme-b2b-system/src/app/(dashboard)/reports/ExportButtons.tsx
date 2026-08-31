@@ -62,6 +62,29 @@ export default function ExportButtons() {
     download(rows, 'Laporan-Fulfillment', 'Fulfillment');
   }
 
+  async function exportLeads() {
+    const { data } = await supabase
+      .from('leads')
+      .select('*, customers(name, type, city), lead_items(current_brand, usual_price, frequency, qty_per_frequency, products(name)), source_order:orders!leads_source_order_id_fkey(order_no), converted_order:orders!leads_converted_order_id_fkey(order_no)')
+      .order('created_at', { ascending: false });
+    const freqMultiplier: Record<string, number> = { Harian: 30, Mingguan: 4.33, Bulanan: 1 };
+    const rows = (data || []).map((l: any) => {
+      const items = l.lead_items || [];
+      const estimasiBulanan = items.reduce((s: number, it: any) => s + (it.usual_price || 0) * (it.qty_per_frequency || 0) * (freqMultiplier[it.frequency] || 1), 0);
+      return {
+        Customer: l.customers?.name, Tipe: l.customers?.type, Kota: l.customers?.city,
+        PIC: l.contact_name, WhatsApp: l.contact_phone, Email: l.contact_email,
+        'Produk Diminati': items.map((it: any) => it.products?.name).filter(Boolean).join(', '),
+        'Merek Biasa Dipakai': items.map((it: any) => it.current_brand).filter(Boolean).join(', '),
+        'Estimasi Nilai per Bulan': Math.round(estimasiBulanan),
+        Rating: l.deal_rating, Status: l.status, 'Follow-up Berikutnya': l.next_follow_up_date || '',
+        'Asal Order (jika ada)': l.source_order?.order_no || '', 'Order Hasil (jika Deal)': l.converted_order?.order_no || '',
+        Catatan: l.notes,
+      };
+    });
+    download(rows, 'Laporan-Leads', 'Leads');
+  }
+
   return (
     <div>
       <div className="card mb-4">
@@ -76,6 +99,7 @@ export default function ExportButtons() {
         <div className="card"><h3 className="font-semibold text-sm">Laporan Customer</h3><p className="text-xs text-gray-500 mt-1">Database customer lengkap.</p><button className="btn btn-primary mt-2" onClick={exportCustomers}>⤓ Download .xlsx</button></div>
         <div className="card"><h3 className="font-semibold text-sm">Laporan Poin Reseller</h3><p className="text-xs text-gray-500 mt-1">Riwayat perolehan &amp; penukaran poin.</p><button className="btn btn-primary mt-2" onClick={exportPoints}>⤓ Download .xlsx</button></div>
         <div className="card"><h3 className="font-semibold text-sm">Laporan Fulfillment &amp; Retur</h3><p className="text-xs text-gray-500 mt-1">Status pengiriman &amp; retur.</p><button className="btn btn-primary mt-2" onClick={exportFulfillment}>⤓ Download .xlsx</button></div>
+        <div className="card"><h3 className="font-semibold text-sm">Laporan Leads / Sales Pipeline</h3><p className="text-xs text-gray-500 mt-1">Prospek, rating, estimasi nilai per bulan, status follow-up.</p><button className="btn btn-primary mt-2" onClick={exportLeads}>⤓ Download .xlsx</button></div>
       </div>
     </div>
   );
