@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
 import { deleteCampaign, toggleCampaignActive } from '@/lib/actions/campaigns';
-import { adjustCustomerPoints } from '@/lib/actions/customers';
 import CampaignForm from './CampaignForm';
 import { rp } from '@/lib/utils';
 import AdjustPointsButton from './AdjustPointsButton';
@@ -29,6 +28,7 @@ export default async function CampaignsPage() {
       </div>
 
       <div className="card mb-4">
+        <div className="table-wrap">
         <table>
           <thead><tr><th>Campaign</th><th>Tipe</th><th>Aturan</th><th>Berlaku Untuk</th><th>Periode</th><th>Status</th><th></th></tr></thead>
           <tbody>
@@ -59,6 +59,7 @@ export default async function CampaignsPage() {
             })}
           </tbody>
         </table>
+        </div>
       </div>
 
       <div className="card">
@@ -66,6 +67,7 @@ export default async function CampaignsPage() {
           <h3 className="font-serif font-semibold">Saldo Poin Reseller</h3>
           <span className="text-xs text-gray-500">Nilai tukar: <b>{rp(pointValue)}</b> / poin</span>
         </div>
+        <div className="table-wrap">
         <table>
           <thead><tr><th>Reseller</th><th>Saldo Poin</th><th>Setara Nilai</th><th></th></tr></thead>
           <tbody>
@@ -79,6 +81,7 @@ export default async function CampaignsPage() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

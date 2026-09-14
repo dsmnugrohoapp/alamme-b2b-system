@@ -1,6 +1,7 @@
 -- ============================================================
--- ALAMME B2B & RESELLER SYSTEM — SUPABASE SCHEMA
+-- ALAMME B2B & RESELLER SYSTEM — SUPABASE SCHEMA (LENGKAP/KUMULATIF)
 -- Jalankan seluruh file ini di: Supabase Dashboard > SQL Editor > New query > Run
+-- Aman dijalankan berkali-kali (semua "if not exists").
 -- ============================================================
 
 create extension if not exists "pgcrypto";
@@ -9,7 +10,7 @@ create extension if not exists "pgcrypto";
 create table if not exists profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   name text,
-  role text default 'staff', -- admin | sales | finance | logistik | staff
+  role text default 'staff',
   created_at timestamptz default now()
 );
 
@@ -18,7 +19,7 @@ create table if not exists customers (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   type text not null default 'Reseller', -- Direct Customer | Hotel | Restoran | Cafe | Distributor | Reseller
-  segment text not null default 'Domestik', -- Domestik | Mancanegara
+  segment text not null default 'Domestik',
   province text, province_id text,
   city text, city_id text,
   district text, district_id text,
@@ -26,11 +27,12 @@ create table if not exists customers (
   pic text,
   phone text,
   email text,
-  pay_term text default 'Cash', -- Cash | CBD | COD | TOP 7 | TOP 14 | TOP 30 | TOP 45 | TOP 60
+  pay_term text default 'Cash',
   margin numeric default 0,
   pkp boolean default true,
   points numeric default 0,
   notes text,
+  order_token text unique default encode(gen_random_bytes(9), 'hex'), -- untuk link Order Mandiri customer
   created_at timestamptz default now()
 );
 
@@ -42,6 +44,11 @@ create table if not exists products (
   category text,
   uom text,
   price numeric not null default 0,
+  commercial_name text,
+  image_url text,
+  description text,
+  variant_group text,
+  variant_label text,
   created_at timestamptz default now()
 );
 
@@ -53,7 +60,7 @@ create table if not exists campaigns (
   value_mode text not null default 'value', -- 'value' | 'percent'
   rp_per_point numeric default 10000,
   points_per_unit numeric default 0,
-  percent_value numeric default 0, -- dipakai kalau value_mode = 'percent'
+  percent_value numeric default 0,
   product_ids uuid[] default '{}',
   customer_types text[] default '{Reseller}',
   start_date date,
@@ -74,11 +81,13 @@ create table if not exists orders (
   status text not null default 'Penawaran', -- Penawaran|PO Diterima|Diproses|Invoiced|Dikirim|Lunas|Batal
   discount numeric default 0,
   discount_type text not null default 'value', -- 'percent' | 'value' — mode diskon keseluruhan order
-  discount_value numeric not null default 0, -- angka mentah sesuai mode (Rp atau %)
+  discount_value numeric not null default 0,
   ship_charge numeric default 0,
   ship_actual numeric default 0,
   other_cost numeric default 0,
   ppn boolean default false,
+  shipping_preference text,
+  payment_method_preference text,
   due_date date,
   paid_date date,
   subtotal numeric default 0,
@@ -86,17 +95,14 @@ create table if not exists orders (
   net_profit numeric default 0,
   net_margin numeric default 0,
   points_earned numeric default 0,
-  -- shipping address (jika beda dari alamat customer)
   ship_same_as_customer boolean default true,
   ship_recipient_name text,
   ship_recipient_phone text,
   ship_province text, ship_city text, ship_district text, ship_address_detail text,
-  -- dokumen
   invoice_no text,
   quo_no text,
   surat_jalan_no text,
-  -- fulfillment
-  fulfillment_status text default 'Perlu Disiapkan', -- Perlu Disiapkan|Disiapkan|Dikirim|Diterima|Retur Sebagian|Retur Total
+  fulfillment_status text default 'Perlu Disiapkan',
   prepared_at date,
   shipped_at date,
   courier text,
@@ -144,7 +150,7 @@ create table if not exists points_ledger (
   created_at timestamptz default now()
 );
 
--- ---------- COMPANY SETTINGS (kop surat + rekening) ----------
+-- ---------- COMPANY SETTINGS ----------
 create table if not exists company_settings (
   id text primary key, -- 'sda' | 'mba' | 'plain'
   name text,
@@ -156,7 +162,7 @@ create table if not exists company_settings (
   bank_accounts jsonb default '[]'
 );
 
--- ---------- APP SETTINGS (nilai tukar poin, counter dokumen) ----------
+-- ---------- APP SETTINGS ----------
 create table if not exists app_settings (
   key text primary key,
   value jsonb
@@ -172,56 +178,25 @@ insert into app_settings (key, value) values
   ('point_value', '1000'),
   ('invoice_counter', '0'),
   ('quo_counter', '0'),
-  ('surat_jalan_counter', '0')
+  ('surat_jalan_counter', '0'),
+  ('public_order_company', '"sda"')
 on conflict (key) do nothing;
 
--- ---------- SEED PRODUCTS (opsional, boleh dihapus/disesuaikan) ----------
+-- ---------- SEED PRODUCTS (opsional) ----------
 insert into products (sku, name, category, uom, price) values
   ('BGR-001','Bawang Hitam Tunggal (Single Cloves)','Black Garlic','pcs (220g)',88825),
   ('BGR-002','Bawang Hitam Kating (Multicloves)','Black Garlic','pcs (250g)',76075),
   ('BGR-003','Bawang Hitam Bubuk (Powder)','Black Garlic','kg',299000),
   ('GRC-001','Bawang Putih Honan','Garlic','kg',29000),
   ('GRC-002','Bawang Putih Kating','Garlic','kg',37000),
+  ('GRC-003','Bawang Putih Kupas','Garlic','kg',35000),
+  ('GRC-004','Bawang Putih Bubuk','Garlic','kg',59500),
+  ('ONI-001','Bawang Bombay NZ 50/60','Onion','karung (20kg)',450000),
   ('HNY-001','Madu Hitam Pahit','Honey','btl (800g)',59000),
   ('HNY-002','Madu Akasia','Honey','btl (1kg)',59000)
 on conflict (sku) do nothing;
 
--- ============================================================
--- ROW LEVEL SECURITY
--- Semua tabel hanya bisa diakses oleh user yang sudah login (tim internal).
--- Untuk pembatasan per-role (misal logistik tidak bisa hapus customer),
--- ini bisa diperketat belakangan menggunakan kolom profiles.role.
--- ============================================================
-alter table profiles enable row level security;
-alter table customers enable row level security;
-alter table products enable row level security;
-alter table campaigns enable row level security;
-alter table orders enable row level security;
-alter table order_items enable row level security;
-alter table order_returns enable row level security;
-alter table order_return_items enable row level security;
-alter table points_ledger enable row level security;
-alter table company_settings enable row level security;
-alter table app_settings enable row level security;
-
-create policy "authenticated read profiles" on profiles for select using (auth.role() = 'authenticated');
-create policy "self update profile" on profiles for update using (auth.uid() = id);
-create policy "self insert profile" on profiles for insert with check (auth.uid() = id);
-
-create policy "authenticated all customers" on customers for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
-create policy "authenticated all products" on products for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
-create policy "authenticated all campaigns" on campaigns for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
-create policy "authenticated all orders" on orders for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
-create policy "authenticated all order_items" on order_items for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
-create policy "authenticated all order_returns" on order_returns for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
-create policy "authenticated all order_return_items" on order_return_items for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
-create policy "authenticated all points_ledger" on points_ledger for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
-create policy "authenticated all company_settings" on company_settings for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
-create policy "authenticated all app_settings" on app_settings for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
-
--- ============================================================
--- LEADS MANAGEMENT
--- ============================================================
+-- ---------- LEADS MANAGEMENT ----------
 create table if not exists leads (
   id uuid primary key default gen_random_uuid(),
   customer_id uuid references customers(id) not null,
@@ -243,15 +218,57 @@ create table if not exists lead_items (
   product_id uuid references products(id),
   current_brand text,
   usual_price numeric default 0,
-  frequency text not null default 'Bulanan',
+  frequency text not null default 'Bulanan', -- 'Harian' | 'Mingguan' | 'Bulanan'
   qty_per_frequency numeric default 0,
+  unit text default '', -- kg, pcs, liter, karton, dst
   notes text
 );
 
+-- ============================================================
+-- ROW LEVEL SECURITY
+-- ============================================================
+alter table profiles enable row level security;
+alter table customers enable row level security;
+alter table products enable row level security;
+alter table campaigns enable row level security;
+alter table orders enable row level security;
+alter table order_items enable row level security;
+alter table order_returns enable row level security;
+alter table order_return_items enable row level security;
+alter table points_ledger enable row level security;
+alter table company_settings enable row level security;
+alter table app_settings enable row level security;
 alter table leads enable row level security;
 alter table lead_items enable row level security;
-create policy "authenticated all leads" on leads for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
-create policy "authenticated all lead_items" on lead_items for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+
+do $$ begin
+  create policy "authenticated read profiles" on profiles for select using (auth.role() = 'authenticated');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create policy "self update profile" on profiles for update using (auth.uid() = id);
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create policy "self insert profile" on profiles for insert with check (auth.uid() = id);
+exception when duplicate_object then null; end $$;
+
+do $$ begin create policy "authenticated all customers" on customers for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated'); exception when duplicate_object then null; end $$;
+do $$ begin create policy "authenticated all products" on products for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated'); exception when duplicate_object then null; end $$;
+do $$ begin create policy "authenticated all campaigns" on campaigns for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated'); exception when duplicate_object then null; end $$;
+do $$ begin create policy "authenticated all orders" on orders for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated'); exception when duplicate_object then null; end $$;
+do $$ begin create policy "authenticated all order_items" on order_items for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated'); exception when duplicate_object then null; end $$;
+do $$ begin create policy "authenticated all order_returns" on order_returns for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated'); exception when duplicate_object then null; end $$;
+do $$ begin create policy "authenticated all order_return_items" on order_return_items for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated'); exception when duplicate_object then null; end $$;
+do $$ begin create policy "authenticated all points_ledger" on points_ledger for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated'); exception when duplicate_object then null; end $$;
+do $$ begin create policy "authenticated all company_settings" on company_settings for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated'); exception when duplicate_object then null; end $$;
+do $$ begin create policy "authenticated all app_settings" on app_settings for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated'); exception when duplicate_object then null; end $$;
+do $$ begin create policy "authenticated all leads" on leads for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated'); exception when duplicate_object then null; end $$;
+do $$ begin create policy "authenticated all lead_items" on lead_items for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated'); exception when duplicate_object then null; end $$;
+
+-- NOTE: Tabel customers/products/orders/order_items TIDAK dibuka untuk akses anonim (anon) sama sekali.
+-- Halaman publik "Order Mandiri" (/order/[token]) TIDAK memakai anon key + RLS,
+-- melainkan service_role key khusus di sisi server (lihat SUPABASE_SERVICE_ROLE_KEY di .env),
+-- yang secara sengaja melewati RLS dan membatasi akses lewat kode aplikasi, bukan lewat policy database.
+-- Ini supaya data customer (nama, HP, alamat) tetap tidak bisa diakses publik lewat anon key.
 
 -- ============================================================
 -- VIEW ANALISIS LEADS
@@ -272,6 +289,18 @@ left join customers c on c.id = l.customer_id
 left join lead_items li on li.lead_id = l.id
 group by l.id, c.name, l.status, l.deal_rating, l.next_follow_up_date
 order by estimasi_nilai_bulanan desc;
+
+-- ============================================================
+-- STORAGE: Bucket untuk Upload Gambar Produk
+-- ============================================================
+insert into storage.buckets (id, name, public)
+values ('product-images', 'product-images', true)
+on conflict (id) do nothing;
+
+do $$ begin create policy "product images public read" on storage.objects for select using (bucket_id = 'product-images'); exception when duplicate_object then null; end $$;
+do $$ begin create policy "product images authenticated insert" on storage.objects for insert with check (bucket_id = 'product-images' and auth.role() = 'authenticated'); exception when duplicate_object then null; end $$;
+do $$ begin create policy "product images authenticated update" on storage.objects for update using (bucket_id = 'product-images' and auth.role() = 'authenticated'); exception when duplicate_object then null; end $$;
+do $$ begin create policy "product images authenticated delete" on storage.objects for delete using (bucket_id = 'product-images' and auth.role() = 'authenticated'); exception when duplicate_object then null; end $$;
 
 -- ============================================================
 -- TRIGGER: auto-create profile row saat ada user baru daftar

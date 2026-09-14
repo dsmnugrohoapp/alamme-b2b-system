@@ -20,13 +20,24 @@ export default async function ProductsPage() {
         <ProductForm mode="create" />
       </div>
       <div className="card">
+        <div className="table-wrap">
         <table>
-          <thead><tr><th>SKU</th><th>Nama Produk</th><th>Kategori</th><th>UoM</th><th>Harga Jual</th><th></th></tr></thead>
+          <thead><tr><th>SKU</th><th>Nama Produk</th><th>Tampilan Customer</th><th>Kategori</th><th>UoM</th><th>Harga Jual</th><th></th></tr></thead>
           <tbody>
-            {(!products || products.length === 0) && <tr><td colSpan={6} className="text-center text-gray-400 py-10">Belum ada SKU.</td></tr>}
+            {(!products || products.length === 0) && <tr><td colSpan={7} className="text-center text-gray-400 py-10">Belum ada SKU.</td></tr>}
             {(products || []).map((p: any) => (
               <tr key={p.id}>
-                <td className="font-mono text-xs">{p.sku}</td><td><b>{p.name}</b></td><td>{p.category}</td><td>{p.uom}</td><td>{rp(p.price)}</td>
+                <td className="font-mono text-xs">{p.sku}</td><td><b>{p.name}</b></td>
+                <td className="text-xs">
+                  <div className="flex items-center gap-2">
+                    {p.image_url ? <img src={p.image_url} alt="" className="w-8 h-8 rounded object-cover border border-gray-200" /> : <div className="w-8 h-8 rounded bg-gray-100 flex items-center justify-center text-gray-300 text-[9px]">no img</div>}
+                    <div>
+                      {p.commercial_name && <div className="font-semibold">{p.commercial_name}</div>}
+                      {p.variant_group && <div className="text-gray-400">Grup: {p.variant_group} {p.variant_label ? `(${p.variant_label})` : ''}</div>}
+                    </div>
+                  </div>
+                </td>
+                <td>{p.category}</td><td>{p.uom}</td><td>{rp(p.price)}</td>
                 <td className="whitespace-nowrap">
                   <ProductForm mode="edit" product={p} />
                   <form action={deleteProduct.bind(null, p.id)} className="inline">
@@ -37,6 +48,7 @@ export default async function ProductsPage() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

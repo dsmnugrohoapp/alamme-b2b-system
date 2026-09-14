@@ -31,6 +31,7 @@ export default async function OrdersPage() {
         <Link href="/orders/new" className="btn btn-primary">+ Order Baru</Link>
       </div>
       <div className="card">
+        <div className="table-wrap">
         <table>
           <thead>
             <tr><th>No. Order</th><th>Tanggal</th><th>Customer</th><th>Termin</th><th>Grand Total</th><th>Net Profit</th><th>Poin</th><th>Status</th><th></th></tr>
@@ -66,6 +67,7 @@ export default async function OrdersPage() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

@@ -5,7 +5,7 @@ import { todayStr } from '@/lib/utils';
 
 type Product = { id: string; sku: string; name: string; uom: string };
 type Customer = { id: string; name: string; type: string; city: string; pic: string; phone: string; email: string };
-type ItemRow = { productId: string; currentBrand: string; usualPrice: number; frequency: string; qtyPerFrequency: number };
+type ItemRow = { productId: string; currentBrand: string; usualPrice: number; frequency: string; qtyPerFrequency: number; unit: string };
 
 export default function LeadForm({ mode, lead, leadItems, customers, products }: {
   mode: 'create' | 'edit'; lead?: any; leadItems?: any[]; customers: Customer[]; products: Product[];
@@ -18,7 +18,7 @@ export default function LeadForm({ mode, lead, leadItems, customers, products }:
   const [items, setItems] = useState<ItemRow[]>(
     leadItems?.map((it) => ({
       productId: it.product_id, currentBrand: it.current_brand || '', usualPrice: Number(it.usual_price) || 0,
-      frequency: it.frequency || 'Bulanan', qtyPerFrequency: Number(it.qty_per_frequency) || 0,
+      frequency: it.frequency || 'Bulanan', qtyPerFrequency: Number(it.qty_per_frequency) || 0, unit: it.unit || '',
     })) || []
   );
 
@@ -29,12 +29,18 @@ export default function LeadForm({ mode, lead, leadItems, customers, products }:
   }
   function addItem() {
     if (products.length === 0) return;
-    setItems([...items, { productId: products[0].id, currentBrand: '', usualPrice: 0, frequency: 'Bulanan', qtyPerFrequency: 1 }]);
+    setItems([...items, { productId: products[0].id, currentBrand: '', usualPrice: 0, frequency: 'Bulanan', qtyPerFrequency: 1, unit: products[0].uom || '' }]);
   }
   function updateItem(idx: number, field: keyof ItemRow, value: any) {
     const next = [...items];
-    if (field === 'usualPrice' || field === 'qtyPerFrequency') next[idx] = { ...next[idx], [field]: parseFloat(value) || 0 };
-    else next[idx] = { ...next[idx], [field]: value };
+    if (field === 'usualPrice' || field === 'qtyPerFrequency') {
+      next[idx] = { ...next[idx], [field]: parseFloat(value) || 0 };
+    } else if (field === 'productId') {
+      const p = products.find((p) => p.id === value);
+      next[idx] = { ...next[idx], productId: value, unit: next[idx].unit ? next[idx].unit : (p?.uom || '') };
+    } else {
+      next[idx] = { ...next[idx], [field]: value };
+    }
     setItems(next);
   }
   function removeItem(idx: number) { setItems(items.filter((_, i) => i !== idx)); }
@@ -77,12 +83,12 @@ export default function LeadForm({ mode, lead, leadItems, customers, products }:
 
               <fieldset className="border border-dashed border-gray-300 rounded-lg p-3 mb-3">
                 <legend className="text-[11px] font-bold uppercase text-golddeep px-1">Produk yang Diminati</legend>
-                <div className="hidden md:grid grid-cols-[1.6fr_1fr_100px_100px_90px_28px] gap-2 text-[10.5px] uppercase text-gray-500 font-bold mb-1.5">
-                  <div>Produk</div><div>Merek Biasa Dipakai</div><div>Harga Biasa Beli</div><div>Frekuensi</div><div>Jml/Periode</div><div></div>
+                <div className="hidden md:grid grid-cols-[1.4fr_0.9fr_90px_90px_70px_80px_28px] gap-2 text-[10.5px] uppercase text-gray-500 font-bold mb-1.5">
+                  <div>Produk</div><div>Merek Biasa Dipakai</div><div>Harga Biasa Beli</div><div>Frekuensi</div><div>Jml/Periode</div><div>Satuan</div><div></div>
                 </div>
                 {items.length === 0 && <p className="text-sm text-gray-400 mb-2">Belum ada produk. Klik "+ Tambah Produk".</p>}
                 {items.map((it, idx) => (
-                  <div key={idx} className="grid grid-cols-1 md:grid-cols-[1.6fr_1fr_100px_100px_90px_28px] gap-2 mb-2 items-center border md:border-0 rounded-lg p-2.5 md:p-0">
+                  <div key={idx} className="grid grid-cols-1 md:grid-cols-[1.4fr_0.9fr_90px_90px_70px_80px_28px] gap-2 mb-2 items-center border md:border-0 rounded-lg p-2.5 md:p-0">
                     <select value={it.productId} onChange={(e) => updateItem(idx, 'productId', e.target.value)}>
                       {products.map((p) => <option key={p.id} value={p.id}>[{p.sku}] {p.name}</option>)}
                     </select>
@@ -91,7 +97,8 @@ export default function LeadForm({ mode, lead, leadItems, customers, products }:
                     <select value={it.frequency} onChange={(e) => updateItem(idx, 'frequency', e.target.value)} className="!text-xs">
                       <option>Harian</option><option>Mingguan</option><option>Bulanan</option>
                     </select>
-                    <input type="number" value={it.qtyPerFrequency} onChange={(e) => updateItem(idx, 'qtyPerFrequency', e.target.value)} placeholder="Qty" className="!text-xs" />
+                    <input type="number" step="0.01" value={it.qtyPerFrequency} onChange={(e) => updateItem(idx, 'qtyPerFrequency', e.target.value)} placeholder="Qty" className="!text-xs" />
+                    <input value={it.unit} onChange={(e) => updateItem(idx, 'unit', e.target.value)} placeholder="kg/pcs/liter" className="!text-xs" />
                     <button type="button" onClick={() => removeItem(idx)} className="text-red-600 text-sm justify-self-end md:justify-self-auto">✕</button>
                   </div>
                 ))}

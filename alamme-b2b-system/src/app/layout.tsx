@@ -3,7 +3,7 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'Alamme B2B & Reseller System',
-  description: 'Order, PNL, Poin, dan Fulfillment System — Alamme',
+  description: 'Order, PNL, Poin, Leads, dan Fulfillment System — Alamme',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -2,9 +2,8 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { todayStr } from '@/lib/utils';
 
-type LeadItemInput = { productId: string; currentBrand: string; usualPrice: number; frequency: string; qtyPerFrequency: number };
+type LeadItemInput = { productId: string; currentBrand: string; usualPrice: number; frequency: string; qtyPerFrequency: number; unit: string };
 
 export async function upsertLead(formData: FormData) {
   const supabase = createClient();
@@ -38,7 +37,7 @@ export async function upsertLead(formData: FormData) {
   if (items.length > 0) {
     const rows = items.map((it) => ({
       lead_id: leadId, product_id: it.productId, current_brand: it.currentBrand,
-      usual_price: it.usualPrice, frequency: it.frequency, qty_per_frequency: it.qtyPerFrequency,
+      usual_price: it.usualPrice, frequency: it.frequency, qty_per_frequency: it.qtyPerFrequency, unit: it.unit,
     }));
     await supabase.from('lead_items').insert(rows);
   }
@@ -58,12 +57,11 @@ export async function updateLeadStatus(id: string, status: string) {
   revalidatePath('/leads');
 }
 
-// Order yang gagal / batal / retur total didaur ulang jadi Lead baru untuk di-follow-up lagi.
 export async function sendOrderToLeads(orderId: string) {
   const supabase = createClient();
   const [{ data: order }, { data: items }] = await Promise.all([
     supabase.from('orders').select('*, customers(pic, phone, email)').eq('id', orderId).single(),
-    supabase.from('order_items').select('product_id, qty, unit_price').eq('order_id', orderId),
+    supabase.from('order_items').select('product_id, qty, unit_price, products(uom)').eq('order_id', orderId),
   ]);
   if (!order) throw new Error('Order tidak ditemukan.');
 
@@ -79,9 +77,9 @@ export async function sendOrderToLeads(orderId: string) {
   }).select('id').single();
   if (error) throw new Error(error.message);
 
-  const itemRows = (items || []).map((it) => ({
+  const itemRows = (items || []).map((it: any) => ({
     lead_id: lead.id, product_id: it.product_id, current_brand: '', usual_price: it.unit_price,
-    frequency: 'Bulanan', qty_per_frequency: it.qty,
+    frequency: 'Bulanan', qty_per_frequency: it.qty, unit: it.products?.uom || '',
   }));
   if (itemRows.length > 0) await supabase.from('lead_items').insert(itemRows);
 

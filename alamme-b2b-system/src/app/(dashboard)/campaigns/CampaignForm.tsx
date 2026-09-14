@@ -56,7 +56,7 @@ export default function CampaignForm({ mode, campaign, products }: { mode: 'crea
                 </div>
               )}
               {type === 'product' && valueMode === 'value' && (
-                <div className="field mb-3"><label>Poin per Unit Terjual</label><input type="number" name="points_per_unit" defaultValue={campaign?.points_per_unit || 5} /></div>
+                <div className="field mb-3"><label>Poin per Unit Terjual</label><input type="number" step="0.1" name="points_per_unit" defaultValue={campaign?.points_per_unit || 5} /></div>
               )}
               {type === 'product' && valueMode === 'percent' && (
                 <div className="field mb-3">
