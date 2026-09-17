@@ -63,12 +63,19 @@ export default function ExportButtons() {
   }
 
   async function exportLeads() {
-    const { data } = await supabase
+    const { data: leadsRaw } = await supabase
       .from('leads')
-      .select('*, customers(name, type, city), lead_items(current_brand, usual_price, frequency, qty_per_frequency, products(name)), source_order:orders!leads_source_order_id_fkey(order_no), converted_order:orders!leads_converted_order_id_fkey(order_no)')
+      .select('*, customers(name, type, city), lead_items(current_brand, usual_price, frequency, qty_per_frequency, products(name))')
       .order('created_at', { ascending: false });
+    const rows0 = leadsRaw || [];
+    const orderIds = Array.from(new Set(rows0.flatMap((l: any) => [l.source_order_id, l.converted_order_id]).filter(Boolean)));
+    let orderNoMap: Record<string, string> = {};
+    if (orderIds.length > 0) {
+      const { data: ords } = await supabase.from('orders').select('id, order_no').in('id', orderIds);
+      (ords || []).forEach((o: any) => { orderNoMap[o.id] = o.order_no; });
+    }
     const freqMultiplier: Record<string, number> = { Harian: 30, Mingguan: 4.33, Bulanan: 1 };
-    const rows = (data || []).map((l: any) => {
+    const rows = rows0.map((l: any) => {
       const items = l.lead_items || [];
       const estimasiBulanan = items.reduce((s: number, it: any) => s + (it.usual_price || 0) * (it.qty_per_frequency || 0) * (freqMultiplier[it.frequency] || 1), 0);
       return {
@@ -78,7 +85,8 @@ export default function ExportButtons() {
         'Merek Biasa Dipakai': items.map((it: any) => it.current_brand).filter(Boolean).join(', '),
         'Estimasi Nilai per Bulan': Math.round(estimasiBulanan),
         Rating: l.deal_rating, Status: l.status, 'Follow-up Berikutnya': l.next_follow_up_date || '',
-        'Asal Order (jika ada)': l.source_order?.order_no || '', 'Order Hasil (jika Deal)': l.converted_order?.order_no || '',
+        'Asal Order (jika ada)': l.source_order_id ? (orderNoMap[l.source_order_id] || '') : '',
+        'Order Hasil (jika Deal)': l.converted_order_id ? (orderNoMap[l.converted_order_id] || '') : '',
         Catatan: l.notes,
       };
     });
