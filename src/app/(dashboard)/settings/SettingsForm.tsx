@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { saveCompanySettings, savePointValue } from '@/lib/actions/settings';
+import { saveCompanySettings, savePointValue, savePublicOrderCompany } from '@/lib/actions/settings';
 
 type BankAccount = { bank: string; accountNo: string; holder: string; type: string };
 
@@ -61,23 +61,41 @@ function CompanyCard({ id, title, initial, isPlain }: { id: string; title: strin
   );
 }
 
-export default function SettingsForm({ companies, pointValue: initialPointValue }: { companies: Record<string, any>; pointValue: number }) {
+export default function SettingsForm({ companies, pointValue: initialPointValue, publicOrderCompany: initialPublicOrderCompany }: { companies: Record<string, any>; pointValue: number; publicOrderCompany: string }) {
   const [pointValue, setPointValue] = useState(initialPointValue);
   const [savedPv, setSavedPv] = useState(false);
+  const [publicOrderCompany, setPublicOrderCompany] = useState(initialPublicOrderCompany);
+  const [savedPoc, setSavedPoc] = useState(false);
 
   async function savePv() {
     await savePointValue(pointValue);
     setSavedPv(true);
     setTimeout(() => setSavedPv(false), 2000);
   }
+  async function savePoc(value: string) {
+    setPublicOrderCompany(value);
+    await savePublicOrderCompany(value);
+    setSavedPoc(true);
+    setTimeout(() => setSavedPoc(false), 2000);
+  }
 
   return (
     <div>
-      <div className="field max-w-xs mb-5">
-        <label>Nilai Tukar Poin (Rp per 1 Poin)</label>
-        <div className="flex gap-2">
-          <input type="number" value={pointValue} onChange={(e) => setPointValue(parseFloat(e.target.value) || 0)} />
-          <button onClick={savePv} className="btn btn-primary whitespace-nowrap">{savedPv ? '✓' : 'Simpan'}</button>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mb-5">
+        <div className="field mb-0">
+          <label>Nilai Tukar Poin (Rp per 1 Poin)</label>
+          <div className="flex gap-2">
+            <input type="number" value={pointValue} onChange={(e) => setPointValue(parseFloat(e.target.value) || 0)} />
+            <button onClick={savePv} className="btn btn-primary whitespace-nowrap">{savedPv ? '✓' : 'Simpan'}</button>
+          </div>
+        </div>
+        <div className="field mb-0">
+          <label>Kop Surat &amp; Rekening di Halaman Order Mandiri</label>
+          <select value={publicOrderCompany} onChange={(e) => savePoc(e.target.value)}>
+            <option value="sda">PT Semua Dari Alam</option>
+            <option value="mba">PT Maju Bersama Alam</option>
+          </select>
+          {savedPoc && <p className="text-[11px] text-green-700 mt-1">Tersimpan ✓</p>}
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

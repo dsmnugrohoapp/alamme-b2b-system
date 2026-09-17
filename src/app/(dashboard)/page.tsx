@@ -32,7 +32,6 @@ export default async function DashboardPage() {
     .sort((a: any, b: any) => (Number(b.overdue) - Number(a.overdue)) || (b.estimasiBulanan - a.estimasiBulanan))
     .slice(0, 6);
 
-  // Agregasi kebutuhan per produk dari semua leads aktif — total kuantitas/bulan (kg, karton, dst sesuai UoM produk) + harga.
   const productAgg: Record<string, { name: string; uom: string; totalQtyMonthly: number; priceSum: number; priceCount: number; leadsSet: Set<string> }> = {};
   leadRows.forEach((l: any) => {
     (l.lead_items || []).forEach((it: any) => {

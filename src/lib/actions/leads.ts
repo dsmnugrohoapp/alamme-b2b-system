@@ -2,7 +2,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { todayStr } from '@/lib/utils';
 
 type LeadItemInput = { productId: string; currentBrand: string; usualPrice: number; frequency: string; qtyPerFrequency: number; unit: string };
 
@@ -58,7 +57,6 @@ export async function updateLeadStatus(id: string, status: string) {
   revalidatePath('/leads');
 }
 
-// Order yang gagal / batal / retur total didaur ulang jadi Lead baru untuk di-follow-up lagi.
 export async function sendOrderToLeads(orderId: string) {
   const supabase = createClient();
   const [{ data: order }, { data: items }] = await Promise.all([

@@ -22,8 +22,12 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  const isLoginPage = request.nextUrl.pathname.startsWith('/login');
-  if (!user && !isLoginPage) {
+  const pathname = request.nextUrl.pathname;
+  const isLoginPage = pathname.startsWith('/login');
+  const isPublicOrderPage = pathname.startsWith('/order/'); // halaman order mandiri customer — tidak perlu login
+  const isPublicPage = isLoginPage || isPublicOrderPage;
+
+  if (!user && !isPublicPage) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);

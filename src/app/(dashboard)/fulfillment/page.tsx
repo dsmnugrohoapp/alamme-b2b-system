@@ -1,5 +1,4 @@
 import { createClient } from '@/lib/supabase/server';
-
 import FulfillmentActions from './FulfillmentActions';
 
 export const dynamic = 'force-dynamic';

@@ -11,6 +11,11 @@ export async function upsertProduct(formData: FormData) {
     category: formData.get('category') as string,
     uom: formData.get('uom') as string,
     price: parseFloat((formData.get('price') as string) || '0'),
+    commercial_name: (formData.get('commercial_name') as string) || null,
+    image_url: (formData.get('image_url') as string) || null,
+    description: (formData.get('description') as string) || null,
+    variant_group: (formData.get('variant_group') as string) || null,
+    variant_label: (formData.get('variant_label') as string) || null,
   };
   if (id) {
     await supabase.from('products').update(payload).eq('id', id);

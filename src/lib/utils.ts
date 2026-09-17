@@ -30,11 +30,10 @@ export type OrderItemInput = {
   productId: string;
   qty: number;
   unitPrice: number;
-  discountType: 'percent' | 'value'; // diskon deal khusus per produk (persen dari harga, atau nominal Rp per baris)
+  discountType: 'percent' | 'value'; // diskon deal khusus per produk
   discountValue: number;
 };
 
-// Hitung diskon & subtotal bersih satu baris item (setelah diskon deal khusus per produk).
 export function computeLineTotal(item: OrderItemInput) {
   const gross = item.qty * item.unitPrice;
   let discountAmount = item.discountType === 'percent' ? (gross * (item.discountValue || 0)) / 100 : item.discountValue || 0;
@@ -55,7 +54,7 @@ export function computeOrderCalc(
 ) {
   const lineResults = items.map(computeLineTotal);
   const itemDiscountTotal = lineResults.reduce((s, l) => s + l.discountAmount, 0);
-  const subtotal = lineResults.reduce((s, l) => s + l.net, 0); // subtotal setelah diskon per-item (deal khusus produk)
+  const subtotal = lineResults.reduce((s, l) => s + l.net, 0);
 
   const orderDiscountAmount =
     orderDiscountType === 'percent' ? (subtotal * (orderDiscountValue || 0)) / 100 : orderDiscountValue || 0;
@@ -76,9 +75,8 @@ export type Campaign = {
   product_ids: string[]; customer_types: string[]; start_date: string | null; end_date: string | null; active: boolean;
 };
 
-// Engine poin — dijalankan saat order disimpan, terhadap campaign yang aktif & berlaku untuk tipe customer & tanggal order.
-// value_mode 'value'   -> revenue: Rp per 1 poin (rp_per_point) | product: poin tetap per unit (points_per_unit)
-// value_mode 'percent' -> revenue: % dari nilai transaksi | product: % dari harga produk per unit — dikonversi via pointValue (Rp per 1 poin, dari Pengaturan)
+// value_mode 'value'   -> revenue: Rp per 1 poin | product: poin tetap per unit
+// value_mode 'percent' -> revenue: % dari nilai transaksi | product: % dari harga produk per unit
 export function computePoints(
   campaigns: Campaign[],
   customerType: string,

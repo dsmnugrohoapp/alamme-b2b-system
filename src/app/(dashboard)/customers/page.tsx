@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { deleteCustomer } from '@/lib/actions/customers';
 import CustomerForm from './CustomerForm';
 import ImportButton from './ImportButton';
+import CopyOrderLink from './CopyOrderLink';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,6 +25,7 @@ export default async function CustomersPage() {
       </div>
 
       <div className="card">
+        <div className="table-wrap">
         <table>
           <thead>
             <tr><th>Nama</th><th>Tipe</th><th>Segmen</th><th>Kota</th><th>PIC</th><th>Termin</th><th>Poin</th><th>PKP</th><th></th></tr>
@@ -41,6 +43,7 @@ export default async function CustomersPage() {
                 <td>{c.pkp ? <span className="badge bg-green-50 text-green-700">PKP</span> : <span className="badge bg-gray-100 text-gray-600">Non-PKP</span>}</td>
                 <td className="whitespace-nowrap">
                   <CustomerForm mode="edit" customer={c} />
+                  {c.order_token && <CopyOrderLink token={c.order_token} />}
                   <form action={deleteCustomer.bind(null, c.id)} className="inline">
                     <button className="btn btn-danger" style={{ padding: '5px 10px', fontSize: 12 }}>Hapus</button>
                   </form>
@@ -49,6 +52,7 @@ export default async function CustomersPage() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );
