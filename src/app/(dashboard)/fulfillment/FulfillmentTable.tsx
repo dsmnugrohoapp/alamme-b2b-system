@@ -16,7 +16,7 @@ export default function FulfillmentTable({ orders }: { orders: any[] }) {
   const filtered = useMemo(() => {
     const ql = q.trim().toLowerCase();
     return orders.filter((o) => {
-      const matchQ = !ql || [o.order_no, o.customers?.name].filter(Boolean).some((v: string) => v.toLowerCase().includes(ql));
+      const matchQ = !ql || [o.order_no, o.customers?.name, o.created_by_name].filter(Boolean).some((v: string) => v.toLowerCase().includes(ql));
       const matchStatus = !status || (o.fulfillment_status || 'Perlu Disiapkan') === status;
       return matchQ && matchStatus;
     });
@@ -25,7 +25,7 @@ export default function FulfillmentTable({ orders }: { orders: any[] }) {
   return (
     <div>
       <div className="flex flex-wrap gap-2 mb-3">
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari No. Order / Customer..." className="!w-auto min-w-[240px]" />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari No. Order / Customer / PIC..." className="!w-auto min-w-[240px]" />
         <select value={status} onChange={(e) => setStatus(e.target.value)} className="!w-auto">
           <option value="">Semua Status Fulfillment</option>
           {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
@@ -37,9 +37,9 @@ export default function FulfillmentTable({ orders }: { orders: any[] }) {
       <div className="card">
         <div className="table-wrap">
           <table>
-            <thead><tr><th>No. Order</th><th>Customer</th><th>Produk yang Disiapkan/Dikirim</th><th>Status Fulfillment</th><th>Kurir / Resi</th><th></th></tr></thead>
+            <thead><tr><th>No. Order</th><th>Customer</th><th>PIC</th><th>Produk yang Disiapkan/Dikirim</th><th>Status Fulfillment</th><th>Kurir / Resi</th><th></th></tr></thead>
             <tbody>
-              {filtered.length === 0 && <tr><td colSpan={6} className="text-center text-gray-400 py-10">{orders.length === 0 ? 'Belum ada order untuk difulfill.' : 'Tidak ada order yang cocok dengan pencarian/filter.'}</td></tr>}
+              {filtered.length === 0 && <tr><td colSpan={7} className="text-center text-gray-400 py-10">{orders.length === 0 ? 'Belum ada order untuk difulfill.' : 'Tidak ada order yang cocok dengan pencarian/filter.'}</td></tr>}
               {filtered.map((o: any) => {
                 const status2 = o.fulfillment_status || 'Perlu Disiapkan';
                 const step = STEP[status2] || 1;
@@ -47,6 +47,7 @@ export default function FulfillmentTable({ orders }: { orders: any[] }) {
                   <tr key={o.id}>
                     <td className="font-mono text-xs">{o.order_no}</td>
                     <td>{o.customers?.name || '—'}</td>
+                    <td className="text-xs">{o.created_by_name || <span className="text-gray-400">-</span>}</td>
                     <td className="text-xs">
                       {(o.order_items || []).map((it: any, idx: number) => (
                         <div key={idx}>{it.products?.name || 'Produk terhapus'} — <b>{it.qty} {it.products?.uom || ''}</b></div>

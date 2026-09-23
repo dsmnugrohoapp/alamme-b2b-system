@@ -45,7 +45,7 @@ export default function CustomerForm({ mode, customer }: { mode: 'create' | 'edi
                 <div className="field"><label>Email</label><input name="email" defaultValue={customer?.email} /></div>
                 <div className="field"><label>Termin Pembayaran</label>
                   <select name="pay_term" defaultValue={customer?.pay_term || 'Cash'}>
-                    <option>Cash</option><option>CBD</option><option>COD</option><option>TOP 7</option><option>TOP 14</option><option>TOP 30</option><option>TOP 45</option><option>TOP 60</option>
+                    <option>Cash</option><option>CBD</option><option>COD</option><option>Consignment</option><option>TOP 7</option><option>TOP 14</option><option>TOP 30</option><option>TOP 45</option><option>TOP 60</option>
                   </select>
                 </div>
               </div>

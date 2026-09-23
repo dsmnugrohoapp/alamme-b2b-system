@@ -65,7 +65,32 @@ Vercel**: `SUPABASE_SERVICE_ROLE_KEY` (lihat langkah 5 di atas) — tanpa ini ha
 
 ---
 
-## Update: Perbaikan Hapus Order + Search & Filter di Semua Menu
+## Update: PIC Order, Catatan Bebas, Consignment, dan Approval Hapus Order
+
+Migrasi tambahan (jalankan setelah migration_009):
+
+1. Supabase → **SQL Editor** → copy isi `supabase/migration_010_order_pic_notes_delete_approval.sql` → **Run**
+2. **Penting** — tentukan siapa yang boleh langsung menghapus order & menyetujui/menolak
+   permintaan hapus dari staff lain: buka **Supabase → Table Editor → tabel `profiles`**,
+   cari baris orang yang dimaksud (biasanya finance/owner), ubah kolom **`role`** jadi
+   `admin` atau `finance`. Semua akun lain (default `staff`) otomatis mengirim permintaan
+   approval, bukan langsung menghapus.
+3. Upload ulang folder project ke GitHub seperti biasa
+
+Yang ditambahkan:
+- **PIC Order** — nama staff yang menginput order kini tercatat otomatis dan tampil di
+  kolom baru di menu **Order & Kalkulator** dan **Fulfillment**, bisa ikut dicari
+- **Catatan bebas** — field teks bebas baru di form Order untuk catatan internal/kondisi khusus
+- **Consignment** — pilihan termin pembayaran baru, tersedia di Customer (default) maupun Order
+  (bisa disesuaikan per transaksi, beda dari default customer-nya)
+- **Approval hapus order** — staff biasa yang klik Hapus sekarang mengirim *permintaan* (bisa
+  isi alasan), bukan langsung menghapus. Admin/Finance melihat badge "Perlu Approval" dengan
+  tombol **Setujui & Hapus** atau **Tolak**. Admin/Finance sendiri tetap bisa hapus langsung
+  tanpa perlu approval dari diri sendiri.
+
+---
+
+
 
 Tidak perlu migrasi database untuk update ini — murni perbaikan &amp; penambahan kode.
 

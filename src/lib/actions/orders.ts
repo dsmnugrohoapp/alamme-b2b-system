@@ -6,12 +6,21 @@ import { computeOrderCalc, computePoints, addDays, termDays, genDocNo, todayStr 
 
 type ItemInput = { productId: string; qty: number; unitPrice: number; discountType: 'percent' | 'value'; discountValue: number };
 
+const FINANCE_ROLES = ['admin', 'finance'];
+
 async function nextCounter(supabase: any, key: string) {
   const { data } = await supabase.from('app_settings').select('value').eq('key', key).single();
   const current = (data?.value as number) || 0;
   const next = current + 1;
   await supabase.from('app_settings').upsert({ key, value: next });
   return next;
+}
+
+async function getCurrentUser(supabase: any) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { id: null as string | null, role: 'staff' };
+  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+  return { id: user.id as string, role: (profile?.role as string) || 'staff' };
 }
 
 export async function saveOrder(formData: FormData) {
@@ -32,6 +41,7 @@ export async function saveOrder(formData: FormData) {
   const shipActual = parseFloat((formData.get('ship_actual') as string) || '0');
   const otherCost = parseFloat((formData.get('other_cost') as string) || '0');
   const ppn = formData.get('ppn') === '1';
+  const notes = (formData.get('notes') as string) || null;
   const calc = computeOrderCalc(items, orderDiscountType, orderDiscountValue, shipCharge, shipActual, otherCost, ppn);
 
   const shipDiffer = formData.get('ship_differ') === '1';
@@ -70,6 +80,7 @@ export async function saveOrder(formData: FormData) {
     status: formData.get('status') as string,
     discount: calc.discount, discount_type: orderDiscountType, discount_value: orderDiscountValue,
     ship_charge: shipCharge, ship_actual: shipActual, other_cost: otherCost, ppn,
+    notes,
     due_date: addDays(date, termDays(payTerm)),
     subtotal: calc.subtotal, grand_total: calc.grandTotal, net_profit: calc.netProfit, net_margin: calc.netMargin,
     points_earned: pts.total,
@@ -97,6 +108,8 @@ export async function saveOrder(formData: FormData) {
     orderPayload.invoice_no = genDocNo('INV', invCounter);
     orderPayload.quo_no = genDocNo('QUO', quoCounter);
     orderPayload.fulfillment_status = 'Perlu Disiapkan';
+    const { id: currentUserId } = await getCurrentUser(supabase);
+    orderPayload.created_by = currentUserId;
     const { data: inserted, error } = await supabase.from('orders').insert(orderPayload).select('id').single();
     if (error) throw new Error(error.message);
     orderId = inserted.id;
@@ -122,15 +135,12 @@ export async function saveOrder(formData: FormData) {
   redirect('/orders');
 }
 
-export async function deleteOrder(id: string) {
-  const supabase = createClient();
+async function performActualDelete(supabase: any, id: string) {
   const { data: order } = await supabase.from('orders').select('customer_id, points_earned').eq('id', id).single();
 
-  // Putuskan referensi dari Leads yang menunjuk ke order ini (bukan hapus lead-nya, cukup lepas link-nya)
   await supabase.from('leads').update({ source_order_id: null }).eq('source_order_id', id);
   await supabase.from('leads').update({ converted_order_id: null }).eq('converted_order_id', id);
 
-  // Balikkan poin yang sempat didapat dari order ini, lalu hapus jejak poinnya
   if (order?.customer_id && order.points_earned) {
     const { data: cust } = await supabase.from('customers').select('points').eq('id', order.customer_id).single();
     const newPoints = Math.max(0, (cust?.points || 0) - order.points_earned);
@@ -145,6 +155,32 @@ export async function deleteOrder(id: string) {
   revalidatePath('/leads');
   revalidatePath('/campaigns');
   revalidatePath('/fulfillment');
+}
+
+export async function deleteOrder(id: string, note?: string) {
+  const supabase = createClient();
+  const { id: userId, role } = await getCurrentUser(supabase);
+
+  if (role && FINANCE_ROLES.includes(role)) {
+    await performActualDelete(supabase, id);
+    return { approved: true };
+  }
+
+  await supabase.from('orders').update({
+    delete_requested: true, delete_requested_by: userId, delete_requested_at: new Date().toISOString(), delete_request_note: note || null,
+  }).eq('id', id);
+  revalidatePath('/orders');
+  return { approved: false };
+}
+
+export async function rejectDeleteRequest(id: string) {
+  const supabase = createClient();
+  const { role } = await getCurrentUser(supabase);
+  if (!role || !FINANCE_ROLES.includes(role)) throw new Error('Hanya Admin/Finance yang bisa menolak permintaan hapus.');
+  await supabase.from('orders').update({
+    delete_requested: false, delete_requested_by: null, delete_requested_at: null, delete_request_note: null,
+  }).eq('id', id);
+  revalidatePath('/orders');
 }
 
 export async function markPaid(id: string) {

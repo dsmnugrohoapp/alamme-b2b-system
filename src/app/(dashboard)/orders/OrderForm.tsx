@@ -136,7 +136,7 @@ export default function OrderForm({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
         <div className="field"><label>Termin Pembayaran</label>
           <select name="pay_term" value={payTerm} onChange={(e) => setPayTerm(e.target.value)}>
-            <option>Cash</option><option>CBD</option><option>COD</option><option>TOP 7</option><option>TOP 14</option><option>TOP 30</option><option>TOP 45</option><option>TOP 60</option>
+            <option>Cash</option><option>CBD</option><option>COD</option><option>Consignment</option><option>TOP 7</option><option>TOP 14</option><option>TOP 30</option><option>TOP 45</option><option>TOP 60</option>
           </select>
         </div>
         <div className="field"><label>Status Order</label>
@@ -172,6 +172,8 @@ export default function OrderForm({
           </div>
         )}
       </fieldset>
+
+      <div className="field mb-3"><label>Catatan (opsional)</label><textarea name="notes" rows={2} defaultValue={order?.notes} placeholder="Catatan bebas untuk order ini — kondisi khusus, instruksi internal, dll" /></div>
 
       <fieldset className="border border-dashed border-gray-300 rounded-lg p-3 mb-3">
         <legend className="text-[11px] font-bold uppercase text-golddeep px-1">Item Order</legend>

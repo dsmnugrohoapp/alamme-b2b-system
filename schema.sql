@@ -110,6 +110,12 @@ create table if not exists orders (
   delivered_at date,
   received_by text,
   fulfillment_notes text,
+  created_by uuid references profiles(id),
+  notes text,
+  delete_requested boolean not null default false,
+  delete_requested_by uuid references profiles(id),
+  delete_requested_at timestamptz,
+  delete_request_note text,
   created_at timestamptz default now()
 );
 

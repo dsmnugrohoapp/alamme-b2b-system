@@ -18,14 +18,14 @@ function statusBadge(o: any) {
   return <span className={`badge ${map[o.status] || 'bg-gray-100 text-gray-600'}`}>{o.status}</span>;
 }
 
-export default function OrdersTable({ orders }: { orders: any[] }) {
+export default function OrdersTable({ orders, currentRole }: { orders: any[]; currentRole: string }) {
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('');
 
   const filtered = useMemo(() => {
     const ql = q.trim().toLowerCase();
     return orders.filter((o) => {
-      const matchQ = !ql || [o.order_no, o.customers?.name, o.po_number].filter(Boolean).some((v: string) => v.toLowerCase().includes(ql));
+      const matchQ = !ql || [o.order_no, o.customers?.name, o.po_number, o.created_by_name].filter(Boolean).some((v: string) => v.toLowerCase().includes(ql));
       const matchStatus = !status || o.status === status;
       return matchQ && matchStatus;
     });
@@ -34,7 +34,7 @@ export default function OrdersTable({ orders }: { orders: any[] }) {
   return (
     <div>
       <div className="flex flex-wrap gap-2 mb-3">
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari No. Order / Customer / No. PO..." className="!w-auto min-w-[240px]" />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari No. Order / Customer / No. PO / PIC..." className="!w-auto min-w-[240px]" />
         <select value={status} onChange={(e) => setStatus(e.target.value)} className="!w-auto">
           <option value="">Semua Status</option>
           {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
@@ -47,13 +47,14 @@ export default function OrdersTable({ orders }: { orders: any[] }) {
         <div className="table-wrap">
           <table>
             <thead>
-              <tr><th>No. Order</th><th>Tanggal</th><th>Customer</th><th>Termin</th><th>Grand Total</th><th>Net Profit</th><th>Poin</th><th>Status</th><th></th></tr>
+              <tr><th>No. Order</th><th>Tanggal</th><th>Customer</th><th>PIC</th><th>Termin</th><th>Grand Total</th><th>Net Profit</th><th>Poin</th><th>Status</th><th></th></tr>
             </thead>
             <tbody>
-              {filtered.length === 0 && <tr><td colSpan={9} className="text-center text-gray-400 py-10">{orders.length === 0 ? 'Belum ada order.' : 'Tidak ada order yang cocok dengan pencarian/filter.'}</td></tr>}
+              {filtered.length === 0 && <tr><td colSpan={10} className="text-center text-gray-400 py-10">{orders.length === 0 ? 'Belum ada order.' : 'Tidak ada order yang cocok dengan pencarian/filter.'}</td></tr>}
               {filtered.map((o: any) => (
                 <tr key={o.id}>
                   <td className="font-mono text-xs">{o.order_no}</td><td>{o.order_date}</td><td>{o.customers?.name || '—'}</td>
+                  <td className="text-xs">{o.created_by_name || <span className="text-gray-400">-</span>}</td>
                   <td><span className="badge bg-blue-50 text-blue-800">{o.pay_term}</span></td>
                   <td>{rp(o.grand_total)}</td>
                   <td className={o.net_profit >= 0 ? 'text-green-700' : 'text-red-600'}>{rp(o.net_profit)}</td>
@@ -72,7 +73,10 @@ export default function OrdersTable({ orders }: { orders: any[] }) {
                         <button className="btn btn-gold" style={{ padding: '5px 10px', fontSize: 12 }}>Kirim ke Leads</button>
                       </form>
                     )}{' '}
-                    <DeleteOrderButton id={o.id} orderNo={o.order_no} />
+                    <DeleteOrderButton
+                      id={o.id} orderNo={o.order_no} currentRole={currentRole}
+                      deleteRequested={o.delete_requested} requestedByName={o.delete_requested_by_name} requestNote={o.delete_request_note}
+                    />
                   </td>
                 </tr>
               ))}
