@@ -124,8 +124,27 @@ export async function saveOrder(formData: FormData) {
 
 export async function deleteOrder(id: string) {
   const supabase = createClient();
-  await supabase.from('orders').delete().eq('id', id);
+  const { data: order } = await supabase.from('orders').select('customer_id, points_earned').eq('id', id).single();
+
+  // Putuskan referensi dari Leads yang menunjuk ke order ini (bukan hapus lead-nya, cukup lepas link-nya)
+  await supabase.from('leads').update({ source_order_id: null }).eq('source_order_id', id);
+  await supabase.from('leads').update({ converted_order_id: null }).eq('converted_order_id', id);
+
+  // Balikkan poin yang sempat didapat dari order ini, lalu hapus jejak poinnya
+  if (order?.customer_id && order.points_earned) {
+    const { data: cust } = await supabase.from('customers').select('points').eq('id', order.customer_id).single();
+    const newPoints = Math.max(0, (cust?.points || 0) - order.points_earned);
+    await supabase.from('customers').update({ points: newPoints }).eq('id', order.customer_id);
+  }
+  await supabase.from('points_ledger').delete().eq('order_id', id);
+
+  const { error } = await supabase.from('orders').delete().eq('id', id);
+  if (error) throw new Error('Gagal menghapus order: ' + error.message);
+
   revalidatePath('/orders');
+  revalidatePath('/leads');
+  revalidatePath('/campaigns');
+  revalidatePath('/fulfillment');
 }
 
 export async function markPaid(id: string) {

@@ -65,7 +65,25 @@ Vercel**: `SUPABASE_SERVICE_ROLE_KEY` (lihat langkah 5 di atas) — tanpa ini ha
 
 ---
 
-## Update: Upload Gambar Produk Langsung dari Aplikasi
+## Update: Perbaikan Hapus Order + Search & Filter di Semua Menu
+
+Tidak perlu migrasi database untuk update ini — murni perbaikan &amp; penambahan kode.
+
+**Perbaikan:** tombol **Hapus** di menu Order & Kalkulator sebelumnya gagal diam-diam (tanpa
+pesan apa pun) untuk order yang sudah menghasilkan poin Reseller atau terhubung ke Leads —
+karena database menahan penghapusan demi menjaga keterkaitan data. Sekarang keterkaitan itu
+otomatis dilepas dulu (bukan data lead-nya yang dihapus, cuma link-nya), poin yang sempat
+didapat otomatis dibalikkan, baru order-nya dihapus. Tombol Hapus juga sekarang minta
+konfirmasi dulu dan akan menampilkan pesan kalau memang ada masalah lain.
+
+**Baru:** kotak pencarian + filter status/tipe ditambahkan di semua menu daftar: **Order &
+Kalkulator**, **Customer**, **Produk/SKU**, **Campaign & Poin**, **Leads Management**, dan
+**Fulfillment**. Filternya langsung bekerja saat mengetik (tidak perlu klik tombol Cari), dan
+ada tombol Reset untuk hapus semua filter sekaligus.
+
+---
+
+
 
 Migrasi tambahan (jalankan setelah migration_008):
 
