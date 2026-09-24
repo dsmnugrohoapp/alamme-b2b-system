@@ -58,6 +58,13 @@ export default function DocClient({ order, items, companies, pointValue }: { ord
         </div>
       </div>
 
+      {order.notes && (
+        <div className="no-print bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mb-4 text-sm text-amber-800">
+          <div className="text-[10.5px] uppercase tracking-wide font-bold mb-1">📝 Catatan Internal Order (tidak ikut tercetak/PDF)</div>
+          {order.notes}
+        </div>
+      )}
+
       <div ref={printRef} className="bg-white max-w-[800px] mx-auto p-8 md:p-12 border border-gray-200 shadow-sm" id="doc-printable">
         <div className={`flex justify-between items-start pb-4 mb-5 ${companyKey === 'plain' ? 'border-b border-gray-200' : 'border-b-[3px] border-ink'}`}>
           <div>

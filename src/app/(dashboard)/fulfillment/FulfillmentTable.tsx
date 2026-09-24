@@ -37,9 +37,9 @@ export default function FulfillmentTable({ orders }: { orders: any[] }) {
       <div className="card">
         <div className="table-wrap">
           <table>
-            <thead><tr><th>No. Order</th><th>Customer</th><th>PIC</th><th>Produk yang Disiapkan/Dikirim</th><th>Status Fulfillment</th><th>Kurir / Resi</th><th></th></tr></thead>
+            <thead><tr><th>No. Order</th><th>Customer</th><th>PIC</th><th>Produk yang Disiapkan/Dikirim</th><th>Catatan</th><th>Status Fulfillment</th><th>Kurir / Resi</th><th></th></tr></thead>
             <tbody>
-              {filtered.length === 0 && <tr><td colSpan={7} className="text-center text-gray-400 py-10">{orders.length === 0 ? 'Belum ada order untuk difulfill.' : 'Tidak ada order yang cocok dengan pencarian/filter.'}</td></tr>}
+              {filtered.length === 0 && <tr><td colSpan={8} className="text-center text-gray-400 py-10">{orders.length === 0 ? 'Belum ada order untuk difulfill.' : 'Tidak ada order yang cocok dengan pencarian/filter.'}</td></tr>}
               {filtered.map((o: any) => {
                 const status2 = o.fulfillment_status || 'Perlu Disiapkan';
                 const step = STEP[status2] || 1;
@@ -52,6 +52,9 @@ export default function FulfillmentTable({ orders }: { orders: any[] }) {
                       {(o.order_items || []).map((it: any, idx: number) => (
                         <div key={idx}>{it.products?.name || 'Produk terhapus'} — <b>{it.qty} {it.products?.uom || ''}</b></div>
                       ))}
+                    </td>
+                    <td className="text-xs max-w-[200px]">
+                      {o.notes ? <span className="bg-amber-50 text-amber-800 px-2 py-1 rounded-md inline-block">{o.notes}</span> : <span className="text-gray-400">-</span>}
                     </td>
                     <td>
                       <span className={`badge ${STATUS_BADGE[status2] || 'bg-gray-100 text-gray-600'}`}>{status2}</span>
