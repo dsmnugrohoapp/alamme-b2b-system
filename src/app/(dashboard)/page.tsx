@@ -141,7 +141,7 @@ export default async function DashboardPage() {
 
       <div className="card mb-5">
         <h3 className="font-serif font-semibold mb-1">Potensi Produk untuk Fulfillment</h3>
-        <p className="text-[11px] text-gray-500 mb-2">Total kebutuhan per bulan dari semua leads aktif (Baru &amp; Proses Follow-up), disamakan satuannya sesuai UoM produk. Berguna untuk perencanaan stok.</p>
+        <p className="text-[11px] text-gray-500 mb-2">Total kebutuhan per bulan dari semua leads aktif (Baru &amp; Proses Follow-up), disamakan satuannya sesuai UoM produk.</p>
         <table>
           <thead><tr><th>Produk</th><th>Total Kebutuhan/Bulan</th><th>Harga Rata-rata</th><th>Jumlah Leads Berminat</th><th>Estimasi Nilai/Bulan</th></tr></thead>
           <tbody>

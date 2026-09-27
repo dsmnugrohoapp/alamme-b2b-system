@@ -1,24 +1,25 @@
 'use client';
-import { updateLeadStatus } from '@/lib/actions/leads';
+import { updateLeadStatus, deleteLead } from '@/lib/actions/leads';
+import Link from 'next/link';
 
-export default function LeadStatusButtons({ id, status }: { id: string; status: string }) {
+const STATUSES = ['Baru', 'Proses Follow-up', 'Deal', 'Gagal/Batal'];
+
+export default function LeadStatusButtons({ lead }: { lead: any }) {
   return (
-    <>
-      {status !== 'Deal' && (
-        <form action={updateLeadStatus.bind(null, id, 'Deal')} className="inline">
-          <button className="btn" style={{ padding: '5px 10px', fontSize: 12 }}>Tandai Deal</button>
-        </form>
+    <div className="flex flex-wrap gap-1 items-center">
+      <select
+        defaultValue={lead.status}
+        onChange={(e) => updateLeadStatus(lead.id, e.target.value)}
+        className="!w-auto !text-xs !py-1.5"
+      >
+        {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+      </select>
+      {lead.status !== 'Deal' && (
+        <Link href={`/orders/new?leadId=${lead.id}`} className="btn btn-gold" style={{ padding: '5px 8px', fontSize: 11 }}>Buat Order</Link>
       )}
-      {status === 'Baru' && (
-        <form action={updateLeadStatus.bind(null, id, 'Proses Follow-up')} className="inline">
-          <button className="btn" style={{ padding: '5px 10px', fontSize: 12 }}>Mulai Follow-up</button>
-        </form>
-      )}
-      {!['Deal', 'Gagal/Batal'].includes(status) && (
-        <form action={updateLeadStatus.bind(null, id, 'Gagal/Batal')} className="inline">
-          <button className="btn" style={{ padding: '5px 10px', fontSize: 12 }}>Tandai Gagal</button>
-        </form>
-      )}
-    </>
+      <form action={deleteLead.bind(null, lead.id)} className="inline">
+        <button className="btn btn-danger" style={{ padding: '5px 8px', fontSize: 11 }}>Hapus</button>
+      </form>
+    </div>
   );
 }

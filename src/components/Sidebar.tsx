@@ -11,6 +11,7 @@ const NAV = [
   { href: '/products', label: 'Produk / SKU', icon: '◇' },
   { href: '/orders', label: 'Order & Kalkulator', icon: '▤' },
   { href: '/campaigns', label: 'Campaign & Poin', icon: '★' },
+  { href: '/broadcast', label: 'Broadcast WA', icon: '💬' },
   { href: '/fulfillment', label: 'Fulfillment', icon: '▣' },
   { href: '/reports', label: 'Laporan', icon: '⤓' },
   { href: '/settings', label: 'Pengaturan', icon: '⚙' },

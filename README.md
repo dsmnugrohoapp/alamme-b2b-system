@@ -1,197 +1,124 @@
 # Alamme B2B & Reseller System
 
-Aplikasi web (Next.js + Supabase + Vercel) untuk order management, kalkulator margin/PPN,
-poin reseller, leads/sales pipeline, fulfillment, invoice/quotation, dan **link order mandiri
-untuk customer** — bisa diakses banyak orang sekaligus dari HP atau laptop.
+Sistem internal untuk order B2B/reseller, kalkulator PNL, poin reseller, leads management, broadcast WhatsApp, fulfillment, invoicing, dan laporan — dibangun dengan Next.js 14 + Supabase + Vercel.
 
----
+## 1. Setup Awal (sekali saja)
 
-## Setup dari Nol
+### a. Supabase
+1. Buat project baru di [supabase.com](https://supabase.com).
+2. Buka **SQL Editor > New query**, paste seluruh isi `supabase/schema.sql`, lalu **Run**. Ini akan membuat semua tabel, kebijakan keamanan (RLS), data awal, dan bucket penyimpanan gambar produk.
+3. Buka **Project Settings > API**, salin:
+   - `Project URL` → `NEXT_PUBLIC_SUPABASE_URL`
+   - `anon public` key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `service_role` key (klik "Reveal") → `SUPABASE_SERVICE_ROLE_KEY` — **JANGAN pernah disebar ke publik/frontend**, hanya untuk server (dipakai fitur Order Mandiri Customer).
+4. Buat akun tim lewat **Authentication > Users > Add user** (isi email + password). Akun ini yang dipakai login ke sistem.
+5. **PENTING — untuk approval hapus order & finance**: buka **Table Editor > profiles**, cari baris user yang baru dibuat (otomatis muncul setelah user pertama kali login), lalu ubah kolom `role` dari `staff` menjadi `admin` atau `finance` untuk orang yang berwenang menyetujui penghapusan order.
 
-### 1. Buat project Supabase
-1. Buka supabase.com → **New project**
-2. Buka **SQL Editor** → **New query** → copy-paste seluruh isi `supabase/schema.sql` → **Run**
-3. Buka **Project Settings > API** → catat:
-   - **Project URL**
-   - **anon public key**
-   - **service_role key** (klik "Reveal" — ini rahasia, jangan disebar. Dipakai khusus untuk fitur Order Mandiri di langkah 5)
-
-### 2. Buat akun login untuk tim
-Supabase Dashboard → **Authentication > Users > Add user** → buat 1 akun per anggota tim.
-
-### 3. Isi environment variables
-Copy `.env.local.example` jadi `.env.local`, isi 3 nilai dari langkah 1.
-
-### 4. Jalankan di lokal untuk cek
-```bash
-npm install
-npm run dev
-```
-
-### 5. Deploy ke Vercel
-1. Push folder ini ke GitHub
-2. Import ke Vercel
-3. Isi **3 Environment Variables** di Vercel (Settings > Environment Variables, pilih tipe **Config** untuk yang `NEXT_PUBLIC_`, dan tipe **Secret** untuk `SUPABASE_SERVICE_ROLE_KEY`):
+### b. Deploy ke Vercel
+1. Extract file zip ini.
+2. Upload semua ISI folder (bukan foldernya) ke root repo GitHub Anda (mis. `alamme-b2b-system`).
+3. Di Vercel: **Import Project** dari repo tsb.
+4. **Root Directory**: kosongkan/biarkan default (jangan diarahkan ke sub-folder apa pun).
+5. Tambahkan Environment Variables (samakan dengan `.env.local.example`):
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - `SUPABASE_SERVICE_ROLE_KEY` ⚠️ **jangan pernah pakai awalan NEXT_PUBLIC_ untuk ini**
-4. Deploy
+   - `SUPABASE_SERVICE_ROLE_KEY`
+6. Deploy.
 
----
+### c. Update untuk database yang SUDAH ada isinya (upgrade)
+Jika Supabase Anda sudah pernah dipakai sebelumnya dan Anda tidak yakin migrasi mana yang sudah berjalan, cukup jalankan **`supabase/CATCHUP_ALL.sql`** — file ini merangkum semua migrasi dari awal sampai sekarang dan aman dijalankan berkali-kali. Atau jalankan migrasi satu per satu sesuai urutan nomornya di folder `supabase/`.
 
-## ⚠️ Kalau kamu upgrade dari versi sebelumnya (database sudah ada isinya)
+## 2. Update Kode di Kemudian Hari
 
-Jalankan SEMUA migrasi berikut di **Supabase SQL Editor**, satu per satu, sesuai urutan nomornya
-(skip yang sudah pernah dijalankan):
+1. Extract zip baru.
+2. Upload SEMUA isi folder (replace semua file) ke GitHub — dari DALAM folder hasil extract, bukan foldernya sendiri.
+3. Commit. Vercel otomatis redeploy.
+4. Jika ada file migrasi SQL baru, jalankan itu juga di Supabase SQL Editor (atau jalankan `CATCHUP_ALL.sql` lagi, aman diulang).
 
-| File | Fitur |
-|---|---|
-| `migration_002_discount.sql` | Diskon per item & per order (persen/Rp) |
-| `migration_003_campaign_percent.sql` | Campaign poin mode Persentase/Margin |
-| `migration_004_leads.sql` | Leads Management (tabel leads & lead_items) |
-| `migration_005_leads_analytics.sql` | View analisis leads (`v_leads_funnel`, `v_leads_potential_value`) |
-| `migration_006_lead_item_unit.sql` | Satuan kebutuhan (kg/pcs/liter) di produk leads |
-| `migration_007_customer_order_link.sql` | **BARU** — link Order Mandiri per customer |
+### Catatan Troubleshooting Deploy
+- **"Redeploy" pada deployment lama akan build kode LAMA**, bukan kode terbaru dari GitHub. Selalu upload ke GitHub dulu, biarkan Vercel otomatis membuat deployment baru, baru "Promote to Production" kalau perlu (cek label "Current" di tab Domains).
+- Jika Vercel terus-menerus menampilkan kode lama meski sudah upload yang baru: cek **Settings > Build and Deployment > Root Directory** — pastikan KOSONG (tidak diarahkan ke sub-folder apa pun, termasuk folder duplikat/nested di GitHub kalau ada kesalahan upload sebelumnya).
+- Warning `core-js`/`allow-scripts` saat build adalah normal, abaikan saja.
 
-Kalau kamu instalasi baru dari `schema.sql`, semua ini sudah otomatis termasuk — tidak perlu
-jalankan file migrasi satu-satu lagi.
+## 3. Fitur
 
-Setelah migrasi database, upload ulang seluruh folder project ke GitHub (drag semua isi folder
-ke repo yang sama, GitHub otomatis timpa file yang berubah) → Vercel redeploy otomatis.
+### Order & Kalkulator
+- Diskon per-item dan per-order (mode Persen atau Rp).
+- Ongkir dibebankan ke customer vs. biaya ongkir aktual (real cost).
+- PPN 11% (on/off per order, default ikut status PKP customer).
+- Biaya operasional lain.
+- Otomatis hitung Net Profit & Net Margin (tanpa HPP/COGS).
+- Alamat pengiriman bisa beda dari alamat customer.
+- Catatan bebas per order (terlihat tim, tidak ikut tercetak di invoice/PDF customer).
+- PIC (siapa yang membuat order) otomatis tercatat.
 
-**Untuk fitur Order Mandiri (migration_007), tambahkan juga 1 environment variable baru di
-Vercel**: `SUPABASE_SERVICE_ROLE_KEY` (lihat langkah 5 di atas) — tanpa ini halaman
-`/order/[token]` akan error.
+### Approval Hapus Order
+- Role `staff`: klik Hapus → order ditandai "menunggu approval", tidak langsung terhapus.
+- Role `admin`/`finance`: bisa menyetujui (hapus permanen) atau menolak permintaan, atau hapus langsung tanpa approval.
+- Atur role lewat **Supabase Table Editor > profiles > kolom role**.
 
----
+### Customer Database
+- Tipe: Direct Customer, Hotel, Restoran, Cafe, Distributor, Reseller.
+- Segmen: Domestik / Mancanegara.
+- Alamat cascading Provinsi/Kota/Kecamatan (data wilayah Indonesia via API publik emsifa.com).
+- Import massal via Excel/CSV (unduh template di halaman Customer).
+- Margin tier referensi, status PKP, saldo poin (khusus Reseller).
+- **Order Mandiri**: tiap customer punya link unik pribadi untuk order sendiri (tombol "Salin Link Order").
 
-## Update: PIC Order, Catatan Bebas, Consignment, dan Approval Hapus Order
+### Broadcast WhatsApp (CRM) — Fitur Baru
+Karena tim Customer Care menangani Reseller dan Direct Customer sekaligus, fitur ini mempercepat komunikasi ke banyak customer:
+- **Chat WA langsung**: tombol "💬 Chat WA" di setiap baris Customer, langsung membuka WhatsApp ke nomor tersebut.
+- **Script Pesan (Template)**: buat pesan siap pakai dengan kategori (Promo, Pengingat Bayar, Restock, Ucapan/Relationship, Poin Reseller, Lainnya) dan variabel otomatis: `{nama}` `{tipe}` `{kota}` `{pic}` `{termin}` `{poin}` `{margin}`.
+- **Buat Broadcast**: pilih script (atau tulis pesan sendiri), pilih target customer (filter by tipe, pencarian nama, pilih semua yang tampil), sistem otomatis membuat pesan personal untuk tiap customer.
+- **Kirim & Lacak**: di halaman detail broadcast, klik "Buka WhatsApp" per customer (membuka wa.me dengan pesan sudah terisi otomatis, tinggal tekan kirim), lalu tandai "Terkirim". Ada progress bar (X dari Y terkirim) dan filter Belum Dikirim/Sudah Terkirim.
+- **Batasan yang perlu dipahami**: WhatsApp tidak mengizinkan kirim otomatis massal ke banyak nomor sekaligus tanpa WhatsApp Business API resmi (berbayar, perlu approval Meta terpisah, di luar cakupan sistem ini). Fitur ini adalah **alat bantu semi-otomatis** — pesan sudah dipersonalisasi otomatis, staf tinggal klik-kirim satu-satu, jauh lebih cepat dari copy-paste manual, dengan pencatatan progress yang rapi.
 
-Migrasi tambahan (jalankan setelah migration_009):
+### Produk/SKU
+- Tanpa HPP (harga-only). Bisa tambah nama komersial, gambar (upload ke Supabase Storage), deskripsi, dan pengelompokan varian (mis. beberapa ukuran jadi satu kartu di Order Mandiri).
 
-1. Supabase → **SQL Editor** → copy isi `supabase/migration_010_order_pic_notes_delete_approval.sql` → **Run**
-2. **Penting** — tentukan siapa yang boleh langsung menghapus order & menyetujui/menolak
-   permintaan hapus dari staff lain: buka **Supabase → Table Editor → tabel `profiles`**,
-   cari baris orang yang dimaksud (biasanya finance/owner), ubah kolom **`role`** jadi
-   `admin` atau `finance`. Semua akun lain (default `staff`) otomatis mengirim permintaan
-   approval, bukan langsung menghapus.
-3. Upload ulang folder project ke GitHub seperti biasa
+### Campaign & Poin Reseller
+- Berdasarkan nilai transaksi ATAU produk spesifik.
+- Mode nilai: nilai tetap (Rp/poin atau poin/unit) atau persentase (% dari transaksi/harga produk).
+- Bisa ditarget ke tipe customer tertentu, punya periode aktif, dan bisa dinonaktifkan.
+- Penyesuaian saldo poin manual (untuk penukaran/koreksi).
 
-Yang ditambahkan:
-- **PIC Order** — nama staff yang menginput order kini tercatat otomatis dan tampil di
-  kolom baru di menu **Order & Kalkulator** dan **Fulfillment**, bisa ikut dicari
-- **Catatan bebas** — field teks bebas baru di form Order untuk catatan internal/kondisi khusus
-- **Consignment** — pilihan termin pembayaran baru, tersedia di Customer (default) maupun Order
-  (bisa disesuaikan per transaksi, beda dari default customer-nya)
-- **Approval hapus order** — staff biasa yang klik Hapus sekarang mengirim *permintaan* (bisa
-  isi alasan), bukan langsung menghapus. Admin/Finance melihat badge "Perlu Approval" dengan
-  tombol **Setujui & Hapus** atau **Tolak**. Admin/Finance sendiri tetap bisa hapus langsung
-  tanpa perlu approval dari diri sendiri.
+### Invoice / Quotation / Surat Jalan
+- 3 pilihan kop surat: PT Semua Dari Alam, PT Maju Bersama Alam, atau Polos.
+- Multi-rekening bank per perusahaan.
+- Download PDF atau cetak langsung dari browser.
 
----
+### Fulfillment
+- Alur status: Perlu Disiapkan → Disiapkan → Dikirim → Diterima.
+- Retur (Sebagian/Total) dengan pencatatan per produk.
+- Nomor Surat Jalan otomatis saat konfirmasi kirim.
+- Kolom PIC dan Catatan agar tim gudang tahu konteks order tanpa buka detail.
 
+### Leads Management
+- Pipeline: Baru → Proses Follow-up → Deal / Gagal-Batal.
+- Rating Hot/Warm/Cold.
+- Estimasi nilai bulanan berdasarkan histori kebiasaan beli (harga, frekuensi, qty).
+- Konversi dua arah: Lead → Order, atau Order yang batal/gagal → kembali jadi Lead untuk di-follow-up ulang.
+- Dashboard menampilkan leads prioritas dan potensi kebutuhan produk untuk perencanaan fulfillment.
 
+### Laporan
+5 export Excel: Order & PNL, Customer, Poin, Fulfillment & Retur, Leads.
 
-Tidak perlu migrasi database untuk update ini — murni perbaikan &amp; penambahan kode.
+### Pengaturan
+- Info perusahaan & rekening bank per entitas.
+- Nilai tukar poin (Rp per poin).
+- Pilihan kop surat mana yang tampil di halaman Order Mandiri customer.
 
-**Perbaikan:** tombol **Hapus** di menu Order & Kalkulator sebelumnya gagal diam-diam (tanpa
-pesan apa pun) untuk order yang sudah menghasilkan poin Reseller atau terhubung ke Leads —
-karena database menahan penghapusan demi menjaga keterkaitan data. Sekarang keterkaitan itu
-otomatis dilepas dulu (bukan data lead-nya yang dihapus, cuma link-nya), poin yang sempat
-didapat otomatis dibalikkan, baru order-nya dihapus. Tombol Hapus juga sekarang minta
-konfirmasi dulu dan akan menampilkan pesan kalau memang ada masalah lain.
+### Pencarian & Filter
+Tersedia di semua halaman daftar: Order, Customer, Produk, Campaign, Leads, Fulfillment.
 
-**Baru:** kotak pencarian + filter status/tipe ditambahkan di semua menu daftar: **Order &
-Kalkulator**, **Customer**, **Produk/SKU**, **Campaign & Poin**, **Leads Management**, dan
-**Fulfillment**. Filternya langsung bekerja saat mengetik (tidak perlu klik tombol Cari), dan
-ada tombol Reset untuk hapus semua filter sekaligus.
-
----
-
-
-
-Migrasi tambahan (jalankan setelah migration_008):
-
-1. Supabase → **SQL Editor** → copy isi `supabase/migration_009_product_image_storage.sql` → **Run**
-2. Upload ulang folder project ke GitHub seperti biasa (tidak perlu environment variable baru)
-
-Sekarang di menu **Produk**, field Gambar Produk punya tombol **pilih file** — staff tinggal
-pilih foto dari galeri HP/laptop (maks. 5MB), otomatis ter-upload ke Supabase Storage dan
-langsung terhubung ke produk tersebut. Tidak perlu lagi cari hosting gambar terpisah atau
-paste link manual.
-
----
-
-## Update: Katalog Visual, Varian, Kurir & Pembayaran di Order Mandiri
-
-Migrasi tambahan (jalankan setelah migration_007):
-
-1. Supabase → **SQL Editor** → copy isi `supabase/migration_008_public_order_upgrade.sql` → **Run**
-2. Upload ulang folder project ke GitHub seperti biasa (tidak perlu environment variable baru)
-
-Yang ditambahkan:
-- **Menu Produk** sekarang punya field tambahan (opsional): **Nama Komersial**, **Gambar**,
-  **Deskripsi**, dan **Kode Grup Varian + Label Varian** — isi Kode Grup Varian yang sama di
-  beberapa SKU (mis. ukuran 220g/250g/1kg dari produk yang sama) supaya di halaman Order
-  Mandiri, semuanya tampil sebagai 1 kartu dengan tombol pilihan varian harga
-- Halaman **Order Mandiri** customer sekarang tampil sebagai katalog visual (gambar, nama
-  komersial, deskripsi, pilihan varian) — bukan tabel polos lagi
-- Customer bisa pilih **Metode Pengiriman** (Kurir Internal Alamme / Kurir Lain) dan **Metode
-  Pembayaran** (Transfer Bank / Sesuai Termin / COD) — kalau pilih Transfer Bank, info rekening
-  otomatis tampil supaya customer makin yakin order-nya legit
-- Menu **Pengaturan** punya opsi baru: pilih kop surat/rekening mana (PT Semua Dari Alam / PT
-  Maju Bersama Alam) yang ditampilkan di halaman Order Mandiri
-- Preferensi kurir & pembayaran yang dipilih customer muncul sebagai catatan di form Order saat
-  staff membuka order tersebut
-
----
-
-## Fitur: Link Order Mandiri untuk Customer
-
-Setiap customer otomatis punya **link unik pribadi** (`/order/<token>`) yang bisa dibagikan
-lewat WhatsApp. Cara pakai:
-
-1. Buka menu **Customer** → cari customer yang mau dikirimi link → klik **"Salin Link Order"**
-2. Kirim link itu ke customer (WA, email, dll)
-3. Customer buka link → langsung lihat katalog produk dengan **harga otomatis sesuai margin
-   tier mereka** (harga standar dikurangi persentase margin tier customer tsb)
-4. Customer pilih produk & jumlah, isi No. PO (opsional), klik **Ajukan Order**
-5. Order otomatis masuk ke sistem dengan status **Penawaran** — muncul di menu Order seperti
-   biasa, siap dikonfirmasi/diproses tim
-
-**Catatan keamanan (penting, jangan skip):** halaman ini publik (tanpa perlu login) dan
-sengaja memakai `service_role key` di sisi server untuk membaca data customer berdasarkan
-token uniknya — bukan lewat sistem keamanan database (RLS) yang dipakai halaman lain. Karena
-itu, **`SUPABASE_SERVICE_ROLE_KEY` WAJIB HANYA disimpan sebagai environment variable di
-Vercel, tidak pernah ditulis di kode atau dikirim ke browser.** Kode aplikasi sudah dirancang
-supaya itu tidak terjadi (dipakai hanya di file dalam folder `src/lib/actions` dan Server
-Component, bukan komponen `'use client'`).
-
-Kalau ada link yang bocor/disalahgunakan, cara mengamankannya: hapus customer tsb lalu buat
-ulang (token baru otomatis ter-generate), atau minta bantuan generate ulang token via SQL:
-```sql
-update customers set order_token = encode(gen_random_bytes(9), 'hex') where id = '<id customer>';
+## 4. Struktur Folder Penting
 ```
-
----
-
-## Struktur folder penting
-
+supabase/schema.sql          → jalankan ini untuk instalasi baru
+supabase/CATCHUP_ALL.sql     → jalankan ini untuk upgrade database lama (aman diulang)
+supabase/migration_XXX.sql   → migrasi individual berurutan (opsional, kalau mau lebih presisi)
+src/lib/actions/             → semua server actions (logic backend)
+src/lib/utils.ts             → kalkulator order, poin, dan helper WhatsApp
+src/app/(dashboard)/         → semua halaman internal tim (perlu login)
+src/app/order/[token]/       → halaman publik Order Mandiri customer (tanpa login)
+src/app/(dashboard)/broadcast/ → fitur CRM Broadcast WhatsApp
 ```
-supabase/schema.sql          <- skema lengkap, jalankan di Supabase SQL Editor
-supabase/migration_*.sql     <- migrasi tambahan per fitur (untuk database yang sudah ada isinya)
-src/lib/utils.ts             <- logika kalkulator (diskon, PPN, poin)
-src/lib/actions/*.ts         <- semua operasi database
-src/lib/supabase/admin.ts    <- client khusus service_role, dipakai HANYA di /order/[token]
-src/app/(dashboard)/*        <- halaman aplikasi internal (perlu login)
-src/app/order/[token]/*      <- halaman publik Order Mandiri (tanpa login)
-src/components/              <- Sidebar, WilayahSelect
-```
-
-## Catatan & batasan
-
-- Data wilayah (Provinsi/Kota/Kecamatan) memakai API publik emsifa — butuh internet saat form
-  dibuka. Kalau gagal, staf/customer tetap bisa isi lewat kolom Alamat Detail.
-- PDF invoice digenerate di browser (gambar halaman, bukan PDF teks yang bisa di-select).
-- Role/permission per user (misal logistik tidak bisa hapus customer) belum dibatasi — semua
-  user yang login punya akses penuh ke menu internal.

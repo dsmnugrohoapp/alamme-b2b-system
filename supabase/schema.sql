@@ -6,7 +6,6 @@
 
 create extension if not exists "pgcrypto";
 
--- ---------- PROFILES (tim internal yang login) ----------
 create table if not exists profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   name text,
@@ -14,11 +13,10 @@ create table if not exists profiles (
   created_at timestamptz default now()
 );
 
--- ---------- CUSTOMERS ----------
 create table if not exists customers (
   id uuid primary key default gen_random_uuid(),
   name text not null,
-  type text not null default 'Reseller', -- Direct Customer | Hotel | Restoran | Cafe | Distributor | Reseller
+  type text not null default 'Reseller',
   segment text not null default 'Domestik',
   province text, province_id text,
   city text, city_id text,
@@ -32,11 +30,10 @@ create table if not exists customers (
   pkp boolean default true,
   points numeric default 0,
   notes text,
-  order_token text unique default encode(gen_random_bytes(9), 'hex'), -- untuk link Order Mandiri customer
+  order_token text unique default encode(gen_random_bytes(9), 'hex'),
   created_at timestamptz default now()
 );
 
--- ---------- PRODUCTS / SKU ----------
 create table if not exists products (
   id uuid primary key default gen_random_uuid(),
   sku text unique not null,
@@ -52,12 +49,11 @@ create table if not exists products (
   created_at timestamptz default now()
 );
 
--- ---------- CAMPAIGNS (aturan poin) ----------
 create table if not exists campaigns (
   id uuid primary key default gen_random_uuid(),
   name text not null,
-  type text not null default 'revenue', -- revenue | product
-  value_mode text not null default 'value', -- 'value' | 'percent'
+  type text not null default 'revenue',
+  value_mode text not null default 'value',
   rp_per_point numeric default 10000,
   points_per_unit numeric default 0,
   percent_value numeric default 0,
@@ -70,7 +66,6 @@ create table if not exists campaigns (
   created_at timestamptz default now()
 );
 
--- ---------- ORDERS ----------
 create table if not exists orders (
   id uuid primary key default gen_random_uuid(),
   order_no text unique not null,
@@ -78,16 +73,14 @@ create table if not exists orders (
   po_number text,
   order_date date not null default current_date,
   pay_term text not null default 'Cash',
-  status text not null default 'Penawaran', -- Penawaran|PO Diterima|Diproses|Invoiced|Dikirim|Lunas|Batal
+  status text not null default 'Penawaran',
   discount numeric default 0,
-  discount_type text not null default 'value', -- 'percent' | 'value' — mode diskon keseluruhan order
+  discount_type text not null default 'value',
   discount_value numeric not null default 0,
   ship_charge numeric default 0,
   ship_actual numeric default 0,
   other_cost numeric default 0,
   ppn boolean default false,
-  shipping_preference text,
-  payment_method_preference text,
   due_date date,
   paid_date date,
   subtotal numeric default 0,
@@ -125,7 +118,7 @@ create table if not exists order_items (
   product_id uuid references products(id),
   qty numeric not null default 1,
   unit_price numeric not null default 0,
-  discount_type text not null default 'percent', -- 'percent' | 'value' — diskon deal khusus per produk
+  discount_type text not null default 'percent',
   discount_value numeric not null default 0
 );
 
@@ -144,21 +137,19 @@ create table if not exists order_return_items (
   qty numeric not null default 0
 );
 
--- ---------- POINTS LEDGER ----------
 create table if not exists points_ledger (
   id uuid primary key default gen_random_uuid(),
   customer_id uuid references customers(id),
   order_id uuid references orders(id),
   ledger_date date not null default current_date,
   points numeric not null default 0,
-  type text not null default 'earn', -- earn | redeem | adjust
+  type text not null default 'earn',
   notes text,
   created_at timestamptz default now()
 );
 
--- ---------- COMPANY SETTINGS ----------
 create table if not exists company_settings (
-  id text primary key, -- 'sda' | 'mba' | 'plain'
+  id text primary key,
   name text,
   address text,
   city text,
@@ -168,7 +159,6 @@ create table if not exists company_settings (
   bank_accounts jsonb default '[]'
 );
 
--- ---------- APP SETTINGS ----------
 create table if not exists app_settings (
   key text primary key,
   value jsonb
@@ -188,7 +178,6 @@ insert into app_settings (key, value) values
   ('public_order_company', '"sda"')
 on conflict (key) do nothing;
 
--- ---------- SEED PRODUCTS (opsional) ----------
 insert into products (sku, name, category, uom, price) values
   ('BGR-001','Bawang Hitam Tunggal (Single Cloves)','Black Garlic','pcs (220g)',88825),
   ('BGR-002','Bawang Hitam Kating (Multicloves)','Black Garlic','pcs (250g)',76075),
@@ -202,15 +191,14 @@ insert into products (sku, name, category, uom, price) values
   ('HNY-002','Madu Akasia','Honey','btl (1kg)',59000)
 on conflict (sku) do nothing;
 
--- ---------- LEADS MANAGEMENT ----------
 create table if not exists leads (
   id uuid primary key default gen_random_uuid(),
   customer_id uuid references customers(id) not null,
   contact_name text,
   contact_phone text,
   contact_email text,
-  deal_rating text not null default 'Warm', -- 'Hot' | 'Warm' | 'Cold'
-  status text not null default 'Baru',      -- 'Baru' | 'Proses Follow-up' | 'Deal' | 'Gagal/Batal'
+  deal_rating text not null default 'Warm',
+  status text not null default 'Baru',
   next_follow_up_date date,
   source_order_id uuid references orders(id),
   converted_order_id uuid references orders(id),
@@ -224,15 +212,38 @@ create table if not exists lead_items (
   product_id uuid references products(id),
   current_brand text,
   usual_price numeric default 0,
-  frequency text not null default 'Bulanan', -- 'Harian' | 'Mingguan' | 'Bulanan'
+  frequency text not null default 'Bulanan',
   qty_per_frequency numeric default 0,
-  unit text default '', -- kg, pcs, liter, karton, dst
+  unit text default '',
   notes text
 );
 
--- ============================================================
--- ROW LEVEL SECURITY
--- ============================================================
+create table if not exists message_templates (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  category text not null default 'Lainnya',
+  content text not null default '',
+  created_at timestamptz default now()
+);
+
+create table if not exists broadcast_campaigns (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  template_id uuid references message_templates(id),
+  message_snapshot text not null default '',
+  created_by uuid references profiles(id),
+  created_at timestamptz default now()
+);
+
+create table if not exists broadcast_targets (
+  id uuid primary key default gen_random_uuid(),
+  campaign_id uuid references broadcast_campaigns(id) on delete cascade,
+  customer_id uuid references customers(id),
+  personalized_message text not null default '',
+  status text not null default 'Belum Dikirim',
+  sent_at timestamptz
+);
+
 alter table profiles enable row level security;
 alter table customers enable row level security;
 alter table products enable row level security;
@@ -246,16 +257,13 @@ alter table company_settings enable row level security;
 alter table app_settings enable row level security;
 alter table leads enable row level security;
 alter table lead_items enable row level security;
+alter table message_templates enable row level security;
+alter table broadcast_campaigns enable row level security;
+alter table broadcast_targets enable row level security;
 
-do $$ begin
-  create policy "authenticated read profiles" on profiles for select using (auth.role() = 'authenticated');
-exception when duplicate_object then null; end $$;
-do $$ begin
-  create policy "self update profile" on profiles for update using (auth.uid() = id);
-exception when duplicate_object then null; end $$;
-do $$ begin
-  create policy "self insert profile" on profiles for insert with check (auth.uid() = id);
-exception when duplicate_object then null; end $$;
+do $$ begin create policy "authenticated read profiles" on profiles for select using (auth.role() = 'authenticated'); exception when duplicate_object then null; end $$;
+do $$ begin create policy "self update profile" on profiles for update using (auth.uid() = id); exception when duplicate_object then null; end $$;
+do $$ begin create policy "self insert profile" on profiles for insert with check (auth.uid() = id); exception when duplicate_object then null; end $$;
 
 do $$ begin create policy "authenticated all customers" on customers for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated'); exception when duplicate_object then null; end $$;
 do $$ begin create policy "authenticated all products" on products for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated'); exception when duplicate_object then null; end $$;
@@ -269,16 +277,18 @@ do $$ begin create policy "authenticated all company_settings" on company_settin
 do $$ begin create policy "authenticated all app_settings" on app_settings for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated'); exception when duplicate_object then null; end $$;
 do $$ begin create policy "authenticated all leads" on leads for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated'); exception when duplicate_object then null; end $$;
 do $$ begin create policy "authenticated all lead_items" on lead_items for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated'); exception when duplicate_object then null; end $$;
+do $$ begin create policy "authenticated all message_templates" on message_templates for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated'); exception when duplicate_object then null; end $$;
+do $$ begin create policy "authenticated all broadcast_campaigns" on broadcast_campaigns for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated'); exception when duplicate_object then null; end $$;
+do $$ begin create policy "authenticated all broadcast_targets" on broadcast_targets for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated'); exception when duplicate_object then null; end $$;
 
--- NOTE: Tabel customers/products/orders/order_items TIDAK dibuka untuk akses anonim (anon) sama sekali.
--- Halaman publik "Order Mandiri" (/order/[token]) TIDAK memakai anon key + RLS,
--- melainkan service_role key khusus di sisi server (lihat SUPABASE_SERVICE_ROLE_KEY di .env),
--- yang secara sengaja melewati RLS dan membatasi akses lewat kode aplikasi, bukan lewat policy database.
--- Ini supaya data customer (nama, HP, alamat) tetap tidak bisa diakses publik lewat anon key.
+insert into storage.buckets (id, name, public)
+values ('product-images', 'product-images', true)
+on conflict (id) do nothing;
+do $$ begin create policy "product images public read" on storage.objects for select using (bucket_id = 'product-images'); exception when duplicate_object then null; end $$;
+do $$ begin create policy "product images authenticated insert" on storage.objects for insert with check (bucket_id = 'product-images' and auth.role() = 'authenticated'); exception when duplicate_object then null; end $$;
+do $$ begin create policy "product images authenticated update" on storage.objects for update using (bucket_id = 'product-images' and auth.role() = 'authenticated'); exception when duplicate_object then null; end $$;
+do $$ begin create policy "product images authenticated delete" on storage.objects for delete using (bucket_id = 'product-images' and auth.role() = 'authenticated'); exception when duplicate_object then null; end $$;
 
--- ============================================================
--- VIEW ANALISIS LEADS
--- ============================================================
 create or replace view v_leads_funnel as
 select status, deal_rating, count(*) as jumlah_leads
 from leads group by status, deal_rating order by status, deal_rating;
@@ -296,21 +306,10 @@ left join lead_items li on li.lead_id = l.id
 group by l.id, c.name, l.status, l.deal_rating, l.next_follow_up_date
 order by estimasi_nilai_bulanan desc;
 
--- ============================================================
--- STORAGE: Bucket untuk Upload Gambar Produk
--- ============================================================
-insert into storage.buckets (id, name, public)
-values ('product-images', 'product-images', true)
-on conflict (id) do nothing;
+insert into message_templates (name, category, content)
+select 'Sapaan Umum', 'Ucapan/Relationship', 'Halo {nama}, terima kasih sudah jadi bagian dari keluarga Alamme! Kalau ada kebutuhan produk, tim kami siap bantu ya.'
+where not exists (select 1 from message_templates where name = 'Sapaan Umum');
 
-do $$ begin create policy "product images public read" on storage.objects for select using (bucket_id = 'product-images'); exception when duplicate_object then null; end $$;
-do $$ begin create policy "product images authenticated insert" on storage.objects for insert with check (bucket_id = 'product-images' and auth.role() = 'authenticated'); exception when duplicate_object then null; end $$;
-do $$ begin create policy "product images authenticated update" on storage.objects for update using (bucket_id = 'product-images' and auth.role() = 'authenticated'); exception when duplicate_object then null; end $$;
-do $$ begin create policy "product images authenticated delete" on storage.objects for delete using (bucket_id = 'product-images' and auth.role() = 'authenticated'); exception when duplicate_object then null; end $$;
-
--- ============================================================
--- TRIGGER: auto-create profile row saat ada user baru daftar
--- ============================================================
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin

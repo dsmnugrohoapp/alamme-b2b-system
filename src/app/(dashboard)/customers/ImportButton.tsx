@@ -50,7 +50,7 @@ export default function ImportButton() {
               <button onClick={() => setOpen(false)} className="text-gray-400 text-xl">✕</button>
             </div>
             <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 text-xs text-blue-800 mb-3">
-              Mendukung ribuan baris sekaligus (misal 1.500 data). Gunakan template agar kolom terbaca otomatis.
+              Mendukung ribuan baris sekaligus. Gunakan template agar kolom terbaca otomatis.
             </div>
             <button className="btn" style={{ fontSize: 12 }} onClick={downloadTemplate}>⤓ Download Template CSV</button>
             <div className="field mt-3"><label>Pilih File (.csv / .xlsx)</label><input type="file" accept=".csv,.xlsx,.xls" onChange={handleFile} /></div>

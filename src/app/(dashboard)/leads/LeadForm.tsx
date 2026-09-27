@@ -1,49 +1,52 @@
 'use client';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { upsertLead } from '@/lib/actions/leads';
-import { todayStr } from '@/lib/utils';
+import { rp } from '@/lib/utils';
 
-type Product = { id: string; sku: string; name: string; uom: string };
-type Customer = { id: string; name: string; type: string; city: string; pic: string; phone: string; email: string };
-type ItemRow = { productId: string; currentBrand: string; usualPrice: number; frequency: string; qtyPerFrequency: number; unit: string };
+type Product = { id: string; sku: string; name: string; uom: string; price: number };
+type Customer = { id: string; name: string; type: string; city: string };
+type LeadItem = { productId: string; currentBrand: string; usualPrice: number; frequency: string; qtyPerFrequency: number; unit: string };
 
-export default function LeadForm({ mode, lead, leadItems, customers, products }: {
-  mode: 'create' | 'edit'; lead?: any; leadItems?: any[]; customers: Customer[]; products: Product[];
-}) {
+const FREQ_MULT: Record<string, number> = { Harian: 30, Mingguan: 4.33, Bulanan: 1 };
+
+export default function LeadForm({ mode, lead, customers, products }: { mode: 'create' | 'edit'; lead?: any; customers: Customer[]; products: Product[] }) {
   const [open, setOpen] = useState(false);
   const [customerId, setCustomerId] = useState(lead?.customer_id || '');
-  const [contactName, setContactName] = useState(lead?.contact_name || '');
-  const [contactPhone, setContactPhone] = useState(lead?.contact_phone || '');
-  const [contactEmail, setContactEmail] = useState(lead?.contact_email || '');
-  const [items, setItems] = useState<ItemRow[]>(
-    leadItems?.map((it) => ({
+  const [customerQuery, setCustomerQuery] = useState(lead ? customers.find((c) => c.id === lead.customer_id)?.name || '' : '');
+  const [showResults, setShowResults] = useState(false);
+  const [items, setItems] = useState<LeadItem[]>(
+    (lead?.lead_items || []).map((it: any) => ({
       productId: it.product_id, currentBrand: it.current_brand || '', usualPrice: Number(it.usual_price) || 0,
-      frequency: it.frequency || 'Bulanan', qtyPerFrequency: Number(it.qty_per_frequency) || 0, unit: it.unit || '',
-    })) || []
+      frequency: it.frequency || 'Bulanan', qtyPerFrequency: Number(it.qty_per_frequency) || 0, unit: it.unit || it.products?.uom || '',
+    }))
   );
 
-  function onCustomerChange(id: string) {
-    setCustomerId(id);
-    const c = customers.find((c) => c.id === id);
-    if (c && !lead) { setContactName(c.pic || ''); setContactPhone(c.phone || ''); setContactEmail(c.email || ''); }
-  }
+  const matches = customerQuery ? customers.filter((c) => c.name.toLowerCase().includes(customerQuery.toLowerCase())).slice(0, 15) : [];
+
+  function selectCustomer(c: Customer) { setCustomerId(c.id); setCustomerQuery(c.name); setShowResults(false); }
   function addItem() {
-    if (products.length === 0) return;
-    setItems([...items, { productId: products[0].id, currentBrand: '', usualPrice: 0, frequency: 'Bulanan', qtyPerFrequency: 1, unit: products[0].uom || '' }]);
+    const p = products[0];
+    if (!p) return;
+    setItems([...items, { productId: p.id, currentBrand: '', usualPrice: p.price, frequency: 'Bulanan', qtyPerFrequency: 1, unit: p.uom }]);
   }
-  function updateItem(idx: number, field: keyof ItemRow, value: any) {
+  function updateItem(idx: number, field: keyof LeadItem, value: any) {
     const next = [...items];
-    if (field === 'usualPrice' || field === 'qtyPerFrequency') {
-      next[idx] = { ...next[idx], [field]: parseFloat(value) || 0 };
-    } else if (field === 'productId') {
+    if (field === 'productId') {
       const p = products.find((p) => p.id === value);
-      next[idx] = { ...next[idx], productId: value, unit: next[idx].unit ? next[idx].unit : (p?.uom || '') };
-    } else {
+      next[idx] = { ...next[idx], productId: value, unit: p?.uom || next[idx].unit };
+    } else if (field === 'currentBrand' || field === 'frequency') {
       next[idx] = { ...next[idx], [field]: value };
+    } else {
+      next[idx] = { ...next[idx], [field]: parseFloat(value) || 0 };
     }
     setItems(next);
   }
   function removeItem(idx: number) { setItems(items.filter((_, i) => i !== idx)); }
+
+  const estimasiBulanan = useMemo(
+    () => items.reduce((s, it) => s + it.usualPrice * it.qtyPerFrequency * (FREQ_MULT[it.frequency] || 1), 0),
+    [items]
+  );
 
   return (
     <>
@@ -52,78 +55,74 @@ export default function LeadForm({ mode, lead, leadItems, customers, products }:
       </button>
       {open && (
         <div className="fixed inset-0 bg-black/45 z-50 flex items-start justify-center p-4 overflow-y-auto" onClick={() => setOpen(false)}>
-          <div className="bg-white rounded-xl max-w-3xl w-full p-6" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white rounded-xl max-w-2xl w-full p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-serif text-lg font-semibold">{mode === 'create' ? 'Lead Baru' : 'Edit Lead'}</h3>
               <button onClick={() => setOpen(false)} className="text-gray-400 text-xl">✕</button>
             </div>
-            <form action={async (fd) => { await upsertLead(fd); setOpen(false); }}>
+            <form action={async (fd) => { fd.set('items_json', JSON.stringify(items)); await upsertLead(fd); setOpen(false); }}>
               <input type="hidden" name="id" defaultValue={lead?.id || ''} />
               <input type="hidden" name="customer_id" value={customerId} />
-              <input type="hidden" name="items_json" value={JSON.stringify(items)} />
 
-              <div className="field mb-3">
-                <label>Customer (potensi)</label>
-                <select value={customerId} onChange={(e) => onCustomerChange(e.target.value)} required>
-                  <option value="">Pilih Customer</option>
-                  {customers.map((c) => <option key={c.id} value={c.id}>{c.name} — {c.type} ({c.city || '-'})</option>)}
-                </select>
-                <p className="text-[11px] text-gray-500 mt-1">Belum ada di daftar? Tambahkan dulu lewat menu Customer, baru pilih di sini.</p>
+              <div className="field mb-3 relative">
+                <label>Cari Customer</label>
+                <input value={customerQuery} onChange={(e) => { setCustomerQuery(e.target.value); setShowResults(true); setCustomerId(''); }} onFocus={() => setShowResults(true)} placeholder="Ketik nama customer..." autoComplete="off" />
+                {showResults && matches.length > 0 && (
+                  <div className="absolute z-20 top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto">
+                    {matches.map((c) => (
+                      <div key={c.id} className="px-3 py-2 text-sm cursor-pointer hover:bg-cream border-b border-gray-50" onClick={() => selectCustomer(c)}>
+                        <b>{c.name}</b><div className="text-[11px] text-gray-400">{c.type} — {c.city || '-'}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <p className="text-[11px] text-gray-500 mt-1">Belum ada di database? Tambah dulu lewat menu Customer.</p>
               </div>
 
-              <fieldset className="border border-dashed border-gray-300 rounded-lg p-3 mb-3">
-                <legend className="text-[11px] font-bold uppercase text-golddeep px-1">PIC / Kontak untuk Deal Ini</legend>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div className="field mb-0"><label>Nama PIC</label><input name="contact_name" value={contactName} onChange={(e) => setContactName(e.target.value)} /></div>
-                  <div className="field mb-0"><label>No. WhatsApp</label><input name="contact_phone" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} /></div>
-                  <div className="field mb-0"><label>Email</label><input name="contact_email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} /></div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                <div className="field"><label>Nama Kontak</label><input name="contact_name" defaultValue={lead?.contact_name} /></div>
+                <div className="field"><label>No. WA/Telepon</label><input name="contact_phone" defaultValue={lead?.contact_phone} /></div>
+                <div className="field"><label>Email</label><input name="contact_email" defaultValue={lead?.contact_email} /></div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                <div className="field"><label>Rating</label>
+                  <select name="deal_rating" defaultValue={lead?.deal_rating || 'Warm'}><option>Hot</option><option>Warm</option><option>Cold</option></select>
                 </div>
-                <p className="text-[11px] text-gray-500 mt-2">Terisi otomatis dari data customer, bisa diganti kalau kontak untuk deal ini beda orang.</p>
-              </fieldset>
+                <div className="field"><label>Status</label>
+                  <select name="status" defaultValue={lead?.status || 'Baru'}><option>Baru</option><option>Proses Follow-up</option><option>Deal</option><option>Gagal/Batal</option></select>
+                </div>
+                <div className="field"><label>Follow-up Berikutnya</label><input type="date" name="next_follow_up_date" defaultValue={lead?.next_follow_up_date} /></div>
+              </div>
 
               <fieldset className="border border-dashed border-gray-300 rounded-lg p-3 mb-3">
                 <legend className="text-[11px] font-bold uppercase text-golddeep px-1">Produk yang Diminati</legend>
-                <div className="hidden md:grid grid-cols-[1.4fr_0.9fr_90px_90px_70px_80px_28px] gap-2 text-[10.5px] uppercase text-gray-500 font-bold mb-1.5">
-                  <div>Produk</div><div>Merek Biasa Dipakai</div><div>Harga Biasa Beli</div><div>Frekuensi</div><div>Jml/Periode</div><div>Satuan</div><div></div>
-                </div>
-                {items.length === 0 && <p className="text-sm text-gray-400 mb-2">Belum ada produk. Klik "+ Tambah Produk".</p>}
+                <p className="text-xs text-gray-500 mb-2">Isi kebiasaan pembelian mereka saat ini untuk estimasi potensi nilai bulanan.</p>
+                {items.length === 0 && <p className="text-sm text-gray-400 mb-2">Belum ada produk diinput.</p>}
                 {items.map((it, idx) => (
-                  <div key={idx} className="grid grid-cols-1 md:grid-cols-[1.4fr_0.9fr_90px_90px_70px_80px_28px] gap-2 mb-2 items-center border md:border-0 rounded-lg p-2.5 md:p-0">
-                    <select value={it.productId} onChange={(e) => updateItem(idx, 'productId', e.target.value)}>
-                      {products.map((p) => <option key={p.id} value={p.id}>[{p.sku}] {p.name}</option>)}
-                    </select>
-                    <input value={it.currentBrand} onChange={(e) => updateItem(idx, 'currentBrand', e.target.value)} placeholder="mis. Bango, kompetitor lokal, dll" className="!text-xs" />
-                    <input type="number" value={it.usualPrice} onChange={(e) => updateItem(idx, 'usualPrice', e.target.value)} placeholder="Rp" className="!text-xs" />
-                    <select value={it.frequency} onChange={(e) => updateItem(idx, 'frequency', e.target.value)} className="!text-xs">
-                      <option>Harian</option><option>Mingguan</option><option>Bulanan</option>
-                    </select>
-                    <input type="number" step="0.01" value={it.qtyPerFrequency} onChange={(e) => updateItem(idx, 'qtyPerFrequency', e.target.value)} placeholder="Qty" className="!text-xs" />
-                    <input value={it.unit} onChange={(e) => updateItem(idx, 'unit', e.target.value)} placeholder="kg/pcs/liter" className="!text-xs" />
-                    <button type="button" onClick={() => removeItem(idx)} className="text-red-600 text-sm justify-self-end md:justify-self-auto">✕</button>
+                  <div key={idx} className="border border-gray-100 rounded-lg p-3 mb-2 grid grid-cols-1 md:grid-cols-2 gap-2 relative">
+                    <button type="button" onClick={() => removeItem(idx)} className="absolute top-2 right-2 text-red-600 text-sm">✕</button>
+                    <div className="field mb-0"><label>Produk Alamme</label>
+                      <select value={it.productId} onChange={(e) => updateItem(idx, 'productId', e.target.value)}>
+                        {products.map((p) => <option key={p.id} value={p.id}>[{p.sku}] {p.name}</option>)}
+                      </select>
+                    </div>
+                    <div className="field mb-0"><label>Brand yang Dipakai Sekarang</label><input value={it.currentBrand} onChange={(e) => updateItem(idx, 'currentBrand', e.target.value)} /></div>
+                    <div className="field mb-0"><label>Harga Biasa (Rp)</label><input type="number" value={it.usualPrice} onChange={(e) => updateItem(idx, 'usualPrice', e.target.value)} /></div>
+                    <div className="field mb-0"><label>Frekuensi Beli</label>
+                      <select value={it.frequency} onChange={(e) => updateItem(idx, 'frequency', e.target.value)}><option>Harian</option><option>Mingguan</option><option>Bulanan</option></select>
+                    </div>
+                    <div className="field mb-0"><label>Qty per Frekuensi</label><input type="number" step="0.01" value={it.qtyPerFrequency} onChange={(e) => updateItem(idx, 'qtyPerFrequency', e.target.value)} /></div>
+                    <div className="field mb-0"><label>Satuan</label><input value={it.unit} onChange={(e) => updateItem(idx, 'unit', e.target.value)} /></div>
                   </div>
                 ))}
                 <button type="button" onClick={addItem} className="btn" style={{ padding: '5px 10px', fontSize: 12 }}>+ Tambah Produk</button>
+                {items.length > 0 && (
+                  <div className="bg-goldsoft text-golddeep font-bold text-sm rounded-lg px-3.5 py-2.5 mt-3">Estimasi Nilai per Bulan: {rp(estimasiBulanan)}</div>
+                )}
               </fieldset>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
-                <div className="field mb-0"><label>Rating Potensi Deal</label>
-                  <select name="deal_rating" defaultValue={lead?.deal_rating || 'Warm'}>
-                    <option value="Hot">🔥 Hot — siap deal</option>
-                    <option value="Warm">🟡 Warm — perlu follow-up</option>
-                    <option value="Cold">❄️ Cold — belum tertarik</option>
-                  </select>
-                </div>
-                <div className="field mb-0"><label>Status</label>
-                  <select name="status" defaultValue={lead?.status || 'Baru'}>
-                    <option value="Baru">Baru</option>
-                    <option value="Proses Follow-up">Proses Follow-up</option>
-                    <option value="Deal">Deal</option>
-                    <option value="Gagal/Batal">Gagal/Batal</option>
-                  </select>
-                </div>
-                <div className="field mb-0"><label>Follow-up Berikutnya</label><input type="date" name="next_follow_up_date" defaultValue={lead?.next_follow_up_date || todayStr()} /></div>
-              </div>
-              <div className="field mb-4"><label>Catatan</label><textarea name="notes" rows={2} defaultValue={lead?.notes} placeholder="Konteks negosiasi, kendala, dll" /></div>
+              <div className="field mb-4"><label>Catatan</label><textarea name="notes" rows={2} defaultValue={lead?.notes} /></div>
               <div className="text-right"><button type="submit" className="btn btn-primary">Simpan Lead</button></div>
             </form>
           </div>

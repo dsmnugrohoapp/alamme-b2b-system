@@ -16,7 +16,6 @@ export default async function OrdersPage() {
   const { data: ordersRaw } = await supabase.from('orders').select('*, customers(name)').order('order_date', { ascending: false });
   const rows = ordersRaw || [];
 
-  // Ambil nama PIC (pembuat order) & nama peminta hapus dengan cara aman (bukan embed by-constraint-name yang rapuh)
   const profileIds = Array.from(new Set(rows.flatMap((o: any) => [o.created_by, o.delete_requested_by]).filter(Boolean)));
   let profileMap: Record<string, string> = {};
   if (profileIds.length > 0) {

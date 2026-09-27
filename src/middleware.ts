@@ -24,7 +24,7 @@ export async function middleware(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
   const isLoginPage = pathname.startsWith('/login');
-  const isPublicOrderPage = pathname.startsWith('/order/'); // halaman order mandiri customer — tidak perlu login
+  const isPublicOrderPage = pathname.startsWith('/order/');
   const isPublicPage = isLoginPage || isPublicOrderPage;
 
   if (!user && !isPublicPage) {

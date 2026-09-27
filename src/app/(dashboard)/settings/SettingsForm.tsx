@@ -2,107 +2,107 @@
 import { useState } from 'react';
 import { saveCompanySettings, savePointValue, savePublicOrderCompany } from '@/lib/actions/settings';
 
-type BankAccount = { bank: string; accountNo: string; holder: string; type: string };
+const COMPANIES = [
+  { id: 'sda', label: 'PT Semua Dari Alam' },
+  { id: 'mba', label: 'PT Maju Bersama Alam' },
+  { id: 'plain', label: 'Tanpa Kop Surat / Plain' },
+];
 
-function CompanyCard({ id, title, initial, isPlain }: { id: string; title: string; initial: any; isPlain?: boolean }) {
-  const [name, setName] = useState(initial?.name || '');
-  const [address, setAddress] = useState(initial?.address || '');
-  const [city, setCity] = useState(initial?.city || '');
-  const [phone, setPhone] = useState(initial?.phone || '');
-  const [email, setEmail] = useState(initial?.email || '');
-  const [npwp, setNpwp] = useState(initial?.npwp || '');
-  const [accounts, setAccounts] = useState<BankAccount[]>(initial?.bank_accounts || []);
-  const [saved, setSaved] = useState(false);
+export default function SettingsForm({ companies, pointValue, publicOrderCompany }: { companies: Record<string, any>; pointValue: number; publicOrderCompany: string }) {
+  const [pv, setPv] = useState(pointValue);
+  const [publicCompany, setPublicCompany] = useState(publicOrderCompany);
+  const [banks, setBanks] = useState<Record<string, any[]>>(() => {
+    const init: Record<string, any[]> = {};
+    COMPANIES.forEach((c) => { init[c.id] = companies[c.id]?.bank_accounts || []; });
+    return init;
+  });
 
-  function updateAccount(idx: number, field: keyof BankAccount, value: string) {
-    const next = [...accounts];
-    next[idx] = { ...next[idx], [field]: value };
-    setAccounts(next);
+  function addBank(companyId: string) {
+    setBanks({ ...banks, [companyId]: [...(banks[companyId] || []), { bank: '', accountNo: '', holder: '', type: 'Giro' }] });
   }
-  function addAccount() { setAccounts([...accounts, { bank: '', accountNo: '', holder: '', type: 'Perusahaan' }]); }
-  function removeAccount(idx: number) { setAccounts(accounts.filter((_, i) => i !== idx)); }
-
-  async function save() {
-    await saveCompanySettings(id, { name, address, city, phone, email, npwp, bank_accounts: accounts.filter((a) => a.bank || a.accountNo) });
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  function updateBank(companyId: string, idx: number, field: string, value: string) {
+    const list = [...(banks[companyId] || [])];
+    list[idx] = { ...list[idx], [field]: value };
+    setBanks({ ...banks, [companyId]: list });
   }
-
-  return (
-    <div className="card">
-      <h3 className="font-serif font-semibold mb-3">{title}</h3>
-      <div className="space-y-3">
-        {isPlain && <div className="field"><label>Nama (opsional untuk dokumen tanpa kop)</label><input value={name} onChange={(e) => setName(e.target.value)} /></div>}
-        <div className="field"><label>Alamat Lengkap</label><input value={address} onChange={(e) => setAddress(e.target.value)} /></div>
-        <div className="field"><label>Kota</label><input value={city} onChange={(e) => setCity(e.target.value)} /></div>
-        <div className="field"><label>Telepon</label><input value={phone} onChange={(e) => setPhone(e.target.value)} /></div>
-        <div className="field"><label>Email</label><input value={email} onChange={(e) => setEmail(e.target.value)} /></div>
-        <div className="field"><label>NPWP</label><input value={npwp} onChange={(e) => setNpwp(e.target.value)} /></div>
-        <div className="field">
-          <label>Rekening Bank (Perusahaan / Pribadi)</label>
-          <div className="space-y-1.5">
-            {accounts.map((a, idx) => (
-              <div key={idx} className="grid grid-cols-2 gap-1.5">
-                <input placeholder="Bank" value={a.bank} onChange={(e) => updateAccount(idx, 'bank', e.target.value)} className="!text-xs !py-1.5" />
-                <input placeholder="No. Rekening" value={a.accountNo} onChange={(e) => updateAccount(idx, 'accountNo', e.target.value)} className="!text-xs !py-1.5" />
-                <input placeholder="Atas Nama" value={a.holder} onChange={(e) => updateAccount(idx, 'holder', e.target.value)} className="!text-xs !py-1.5" />
-                <div className="flex gap-1">
-                  <select value={a.type} onChange={(e) => updateAccount(idx, 'type', e.target.value)} className="!text-xs !py-1.5"><option>Perusahaan</option><option>Pribadi</option></select>
-                  <button type="button" onClick={() => removeAccount(idx)} className="text-red-600 text-sm px-2">✕</button>
-                </div>
-              </div>
-            ))}
-          </div>
-          <button type="button" onClick={addAccount} className="btn mt-2" style={{ padding: '5px 10px', fontSize: 12 }}>+ Tambah Rekening</button>
-        </div>
-        <button onClick={save} className="btn btn-primary">{saved ? 'Tersimpan ✓' : 'Simpan'}</button>
-      </div>
-    </div>
-  );
-}
-
-export default function SettingsForm({ companies, pointValue: initialPointValue, publicOrderCompany: initialPublicOrderCompany }: { companies: Record<string, any>; pointValue: number; publicOrderCompany: string }) {
-  const [pointValue, setPointValue] = useState(initialPointValue);
-  const [savedPv, setSavedPv] = useState(false);
-  const [publicOrderCompany, setPublicOrderCompany] = useState(initialPublicOrderCompany);
-  const [savedPoc, setSavedPoc] = useState(false);
-
-  async function savePv() {
-    await savePointValue(pointValue);
-    setSavedPv(true);
-    setTimeout(() => setSavedPv(false), 2000);
-  }
-  async function savePoc(value: string) {
-    setPublicOrderCompany(value);
-    await savePublicOrderCompany(value);
-    setSavedPoc(true);
-    setTimeout(() => setSavedPoc(false), 2000);
+  function removeBank(companyId: string, idx: number) {
+    setBanks({ ...banks, [companyId]: (banks[companyId] || []).filter((_, i) => i !== idx) });
   }
 
   return (
-    <div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mb-5">
-        <div className="field mb-0">
-          <label>Nilai Tukar Poin (Rp per 1 Poin)</label>
-          <div className="flex gap-2">
-            <input type="number" value={pointValue} onChange={(e) => setPointValue(parseFloat(e.target.value) || 0)} />
-            <button onClick={savePv} className="btn btn-primary whitespace-nowrap">{savedPv ? '✓' : 'Simpan'}</button>
+    <div className="space-y-5 max-w-3xl">
+      <div className="card">
+        <h3 className="font-serif font-semibold mb-3">Nilai Tukar Poin &amp; Kop Surat Order Mandiri</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="field mb-0">
+            <label>1 Poin setara Rp</label>
+            <div className="flex gap-2">
+              <input type="number" value={pv} onChange={(e) => setPv(parseFloat(e.target.value) || 0)} />
+              <button onClick={() => savePointValue(pv)} className="btn btn-primary whitespace-nowrap">Simpan</button>
+            </div>
+          </div>
+          <div className="field mb-0">
+            <label>Kop Surat untuk Link Order Mandiri Customer</label>
+            <div className="flex gap-2">
+              <select value={publicCompany} onChange={(e) => setPublicCompany(e.target.value)}>
+                {COMPANIES.filter((c) => c.id !== 'plain').map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+              </select>
+              <button onClick={() => savePublicOrderCompany(publicCompany)} className="btn btn-primary whitespace-nowrap">Simpan</button>
+            </div>
           </div>
         </div>
-        <div className="field mb-0">
-          <label>Kop Surat &amp; Rekening di Halaman Order Mandiri</label>
-          <select value={publicOrderCompany} onChange={(e) => savePoc(e.target.value)}>
-            <option value="sda">PT Semua Dari Alam</option>
-            <option value="mba">PT Maju Bersama Alam</option>
-          </select>
-          {savedPoc && <p className="text-[11px] text-green-700 mt-1">Tersimpan ✓</p>}
-        </div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <CompanyCard id="sda" title="PT Semua Dari Alam" initial={companies.sda} />
-        <CompanyCard id="mba" title="PT Maju Bersama Alam" initial={companies.mba} />
-        <CompanyCard id="plain" title="Tanpa Kop Surat / Plain" initial={companies.plain} isPlain />
-      </div>
+
+      {COMPANIES.map((company) => {
+        const c = companies[company.id] || {};
+        return (
+          <div key={company.id} className="card">
+            <h3 className="font-serif font-semibold mb-3">{company.label}</h3>
+            <form action={async (fd) => {
+              const data = {
+                name: (fd.get('name') as string) || '',
+                address: (fd.get('address') as string) || '',
+                city: (fd.get('city') as string) || '',
+                phone: (fd.get('phone') as string) || '',
+                email: (fd.get('email') as string) || '',
+                npwp: (fd.get('npwp') as string) || '',
+                bank_accounts: banks[company.id] || [],
+              };
+              await saveCompanySettings(company.id, data);
+            }}>
+              {company.id !== 'plain' && (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                    <div className="field mb-0"><label>Nama Perusahaan</label><input name="name" defaultValue={c.name || company.label} /></div>
+                    <div className="field mb-0"><label>Kota</label><input name="city" defaultValue={c.city} /></div>
+                  </div>
+                  <div className="field mb-3"><label>Alamat</label><textarea name="address" rows={2} defaultValue={c.address} /></div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                    <div className="field mb-0"><label>Telepon</label><input name="phone" defaultValue={c.phone} /></div>
+                    <div className="field mb-0"><label>Email</label><input name="email" defaultValue={c.email} /></div>
+                    <div className="field mb-0"><label>NPWP</label><input name="npwp" defaultValue={c.npwp} /></div>
+                  </div>
+                  <div className="mb-3">
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">Rekening Bank</label>
+                    {(banks[company.id] || []).map((b, idx) => (
+                      <div key={idx} className="grid grid-cols-1 md:grid-cols-[1fr_1fr_1fr_100px_28px] gap-2 mb-2">
+                        <input placeholder="Nama Bank" value={b.bank} onChange={(e) => updateBank(company.id, idx, 'bank', e.target.value)} />
+                        <input placeholder="No. Rekening" value={b.accountNo} onChange={(e) => updateBank(company.id, idx, 'accountNo', e.target.value)} />
+                        <input placeholder="Atas Nama" value={b.holder} onChange={(e) => updateBank(company.id, idx, 'holder', e.target.value)} />
+                        <select value={b.type} onChange={(e) => updateBank(company.id, idx, 'type', e.target.value)}><option>Giro</option><option>Tabungan</option></select>
+                        <button type="button" onClick={() => removeBank(company.id, idx)} className="text-red-600">✕</button>
+                      </div>
+                    ))}
+                    <button type="button" onClick={() => addBank(company.id)} className="btn" style={{ padding: '5px 10px', fontSize: 12 }}>+ Tambah Rekening</button>
+                  </div>
+                </>
+              )}
+              {company.id === 'plain' && <p className="text-xs text-gray-500 mb-3">Opsi ini mencetak dokumen tanpa kop surat perusahaan (polos).</p>}
+              <div className="text-right"><button type="submit" className="btn btn-primary">Simpan {company.label}</button></div>
+            </form>
+          </div>
+        );
+      })}
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import { deleteCustomer } from '@/lib/actions/customers';
 import CustomerForm from './CustomerForm';
 import CopyOrderLink from './CopyOrderLink';
+import { waLink } from '@/lib/utils';
 
 const TYPES = ['Direct Customer', 'Hotel', 'Restoran', 'Cafe', 'Distributor', 'Reseller'];
 
@@ -56,6 +57,11 @@ export default function CustomersTable({ customers }: { customers: any[] }) {
                   <td>{c.pkp ? <span className="badge bg-green-50 text-green-700">PKP</span> : <span className="badge bg-gray-100 text-gray-600">Non-PKP</span>}</td>
                   <td className="whitespace-nowrap">
                     <CustomerForm mode="edit" customer={c} />
+                    {c.phone && (
+                      <a href={waLink(c.phone)} target="_blank" rel="noopener noreferrer" className="btn btn-gold" style={{ padding: '5px 10px', fontSize: 12 }}>
+                        💬 Chat WA
+                      </a>
+                    )}
                     {c.order_token && <CopyOrderLink token={c.order_token} />}
                     <form action={deleteCustomer.bind(null, c.id)} className="inline">
                       <button className="btn btn-danger" style={{ padding: '5px 10px', fontSize: 12 }}>Hapus</button>

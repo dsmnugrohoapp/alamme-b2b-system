@@ -55,7 +55,7 @@ export default function ProductForm({ mode, product }: { mode: 'create' | 'edit'
 
               <fieldset className="border border-dashed border-gray-300 rounded-lg p-3 mb-3">
                 <legend className="text-[11px] font-bold uppercase text-golddeep px-1">Tampilan untuk Order Mandiri Customer</legend>
-                <div className="field mb-3"><label>Nama Komersial (opsional — kalau kosong pakai Nama Produk)</label><input name="commercial_name" defaultValue={product?.commercial_name} placeholder="mis. Bawang Hitam Premium Alamme" /></div>
+                <div className="field mb-3"><label>Nama Komersial (opsional)</label><input name="commercial_name" defaultValue={product?.commercial_name} placeholder="mis. Bawang Hitam Premium Alamme" /></div>
 
                 <div className="field mb-3">
                   <label>Gambar Produk</label>
@@ -75,15 +75,14 @@ export default function ProductForm({ mode, product }: { mode: 'create' | 'edit'
                     </div>
                   </div>
                   <input type="hidden" name="image_url" value={imageUrl} />
-                  <p className="text-[11px] text-gray-500 mt-2">Maks. 5MB. Bisa juga JPG/PNG hasil foto langsung dari HP.</p>
+                  <p className="text-[11px] text-gray-500 mt-2">Maks. 5MB.</p>
                 </div>
 
-                <div className="field mb-3"><label>Deskripsi Singkat</label><textarea name="description" rows={2} defaultValue={product?.description} placeholder="mis. Bersertifikat Halal MUI, BPOM, HACCP. Tanpa pengawet." /></div>
+                <div className="field mb-3"><label>Deskripsi Singkat</label><textarea name="description" rows={2} defaultValue={product?.description} placeholder="mis. Bersertifikat Halal MUI, BPOM, HACCP." /></div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="field mb-0"><label>Kode Grup Varian (opsional)</label><input name="variant_group" defaultValue={product?.variant_group} placeholder="mis. bawang-hitam-tunggal" /></div>
                   <div className="field mb-0"><label>Label Varian (opsional)</label><input name="variant_label" defaultValue={product?.variant_label} placeholder="mis. 250g" /></div>
                 </div>
-                <p className="text-[11px] text-gray-500 mt-2">Isi Kode Grup Varian yang SAMA di beberapa SKU (mis. ukuran 220g, 250g, 1kg dari produk yang sama) supaya di halaman Order Mandiri customer, semuanya tampil sebagai 1 kartu dengan pilihan varian harga.</p>
               </fieldset>
 
               <div className="text-right"><button type="submit" disabled={uploading} className="btn btn-primary">Simpan SKU</button></div>

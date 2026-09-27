@@ -52,7 +52,6 @@ export default function CampaignForm({ mode, campaign, products }: { mode: 'crea
                 <div className="field mb-3">
                   <label>Persentase dari Nilai Transaksi (%)</label>
                   <input type="number" step="0.1" name="percent_value" defaultValue={campaign?.percent_value || 1} />
-                  <p className="text-[11px] text-gray-500 mt-1">Contoh: 2% dari subtotal order dikonversi jadi poin, memakai Nilai Tukar Poin di menu Pengaturan.</p>
                 </div>
               )}
               {type === 'product' && valueMode === 'value' && (
@@ -62,7 +61,6 @@ export default function CampaignForm({ mode, campaign, products }: { mode: 'crea
                 <div className="field mb-3">
                   <label>Persentase dari Harga Produk per Unit (%)</label>
                   <input type="number" step="0.1" name="percent_value" defaultValue={campaign?.percent_value || 5} />
-                  <p className="text-[11px] text-gray-500 mt-1">Contoh: 5% dari harga jual tiap unit produk terpilih dikonversi jadi poin per unit terjual.</p>
                 </div>
               )}
 

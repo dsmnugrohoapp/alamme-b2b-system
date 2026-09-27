@@ -15,7 +15,7 @@ export function addDays(dateStr: string, days: number) {
 }
 export function termDays(term: string) {
   if (!term) return 0;
-  if (term === 'Cash' || term === 'CBD' || term === 'COD') return 0;
+  if (term === 'Cash' || term === 'CBD' || term === 'COD' || term === 'Consignment') return 0;
   const m = term.match(/\d+/);
   return m ? parseInt(m[0]) : 0;
 }
@@ -30,7 +30,7 @@ export type OrderItemInput = {
   productId: string;
   qty: number;
   unitPrice: number;
-  discountType: 'percent' | 'value'; // diskon deal khusus per produk
+  discountType: 'percent' | 'value';
   discountValue: number;
 };
 
@@ -41,8 +41,6 @@ export function computeLineTotal(item: OrderItemInput) {
   return { gross, discountAmount, net: gross - discountAmount };
 }
 
-// Kalkulator inti — fokus revenue & biaya operasional (tanpa HPP).
-// discount order-level bisa dalam mode 'value' (Rp) atau 'percent' (dari subtotal setelah diskon per-item).
 export function computeOrderCalc(
   items: OrderItemInput[],
   orderDiscountType: 'percent' | 'value',
@@ -75,8 +73,6 @@ export type Campaign = {
   product_ids: string[]; customer_types: string[]; start_date: string | null; end_date: string | null; active: boolean;
 };
 
-// value_mode 'value'   -> revenue: Rp per 1 poin | product: poin tetap per unit
-// value_mode 'percent' -> revenue: % dari nilai transaksi | product: % dari harga produk per unit
 export function computePoints(
   campaigns: Campaign[],
   customerType: string,
@@ -113,4 +109,40 @@ export function computePoints(
     if (pts > 0) breakdown.push({ campaign: camp.name, points: pts });
   });
   return { total: breakdown.reduce((s, b) => s + b.points, 0), breakdown };
+}
+
+// ---------- CRM Broadcast WhatsApp helpers ----------
+
+// Ubah nomor telepon Indonesia (format apa pun: 08xx, +628xx, 628xx, dengan spasi/strip)
+// jadi format internasional murni (628xxxxxxxxxx) yang dibutuhkan link wa.me
+export function toWaNumber(phone: string | null | undefined): string {
+  let p = (phone || '').replace(/[^\d+]/g, '');
+  if (p.startsWith('+62')) p = p.slice(1);
+  else if (p.startsWith('62')) { /* sudah benar */ }
+  else if (p.startsWith('0')) p = '62' + p.slice(1);
+  else if (p) p = '62' + p;
+  return p;
+}
+
+export function waLink(phone: string | null | undefined, message?: string): string {
+  const num = toWaNumber(phone);
+  const text = message ? `?text=${encodeURIComponent(message)}` : '';
+  return `https://wa.me/${num}${text}`;
+}
+
+function replaceAllSafe(str: string, token: string, val: string) {
+  return str.split(token).join(val);
+}
+
+// Ganti placeholder {nama}, {tipe}, {kota}, {pic}, {termin}, {poin}, {margin} dengan data customer
+export function renderTemplate(content: string, customer: any): string {
+  let out = content || '';
+  out = replaceAllSafe(out, '{nama}', customer?.name || '');
+  out = replaceAllSafe(out, '{tipe}', customer?.type || '');
+  out = replaceAllSafe(out, '{kota}', customer?.city || '');
+  out = replaceAllSafe(out, '{pic}', customer?.pic || '');
+  out = replaceAllSafe(out, '{termin}', customer?.pay_term || '');
+  out = replaceAllSafe(out, '{poin}', String(customer?.points || 0));
+  out = replaceAllSafe(out, '{margin}', String(customer?.margin || 0));
+  return out;
 }

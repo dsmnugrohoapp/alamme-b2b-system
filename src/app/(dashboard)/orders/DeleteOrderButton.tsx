@@ -15,7 +15,6 @@ export default function DeleteOrderButton({
 
   function handleDeleteClick() {
     if (deleteRequested && isFinance) {
-      // Finance menyetujui permintaan yang sudah ada
       if (!confirm(`Setujui & hapus order ${orderNo}? Tindakan ini tidak bisa dibatalkan.`)) return;
       startTransition(async () => {
         try { await deleteOrder(id); } catch (e: any) { alert(e.message || 'Gagal menghapus order.'); }
@@ -29,7 +28,6 @@ export default function DeleteOrderButton({
       });
       return;
     }
-    // Staff biasa -> kirim permintaan approval ke Finance
     const note = prompt('Alasan hapus order ini (opsional, akan dilihat Finance):', '') || '';
     startTransition(async () => {
       try {
