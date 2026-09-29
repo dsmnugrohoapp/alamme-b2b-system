@@ -1,9 +1,10 @@
 'use client';
 import { useMemo, useState, useTransition } from 'react';
 import { createBroadcast } from '@/lib/actions/broadcast';
-import { renderTemplate } from '@/lib/utils';
+import { renderTemplate, hasBrokenEncoding } from '@/lib/utils';
 
 const TYPES = ['Direct Customer', 'Hotel', 'Restoran', 'Cafe', 'Distributor', 'Reseller'];
+const QUICK_EMOJI = ['😊', '🙏', '🎉', '✅', '📦', '💬', '⭐', '🔥', '👋', '🛍️'];
 
 export default function NewBroadcastClient({ customers, templates }: { customers: any[]; templates: any[] }) {
   const [name, setName] = useState('');
@@ -45,6 +46,7 @@ export default function NewBroadcastClient({ customers, templates }: { customers
     setError('');
     if (!name.trim()) { setError('Isi nama broadcast dulu.'); return; }
     if (!content.trim()) { setError('Isi pesan tidak boleh kosong.'); return; }
+    if (hasBrokenEncoding(content)) { setError('Ada karakter rusak (kotak/tanda tanya) di isi pesan — biasanya dari hasil paste. Hapus bagian itu dan ketik ulang emoji-nya, lalu coba lagi.'); return; }
     if (selectedIds.length === 0) { setError('Pilih minimal 1 customer target.'); return; }
     startTransition(async () => {
       try {
@@ -70,6 +72,16 @@ export default function NewBroadcastClient({ customers, templates }: { customers
             </select>
           </div>
           <div className="field mb-1"><label>Isi Pesan</label><textarea rows={6} value={content} onChange={(e) => setContent(e.target.value)} placeholder="Halo {nama}, ..." /></div>
+          {hasBrokenEncoding(content) && (
+            <div className="bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg px-3 py-2.5 mb-2 mt-1">
+              ⚠ Terdeteksi karakter rusak (kotak/tanda tanya) — biasanya terjadi kalau emoji di-<i>paste</i> dari Word/Notes/aplikasi lain. Hapus bagian yang rusak, lalu pakai tombol emoji di bawah.
+            </div>
+          )}
+          <div className="flex flex-wrap gap-1.5 mb-2">
+            {QUICK_EMOJI.map((em) => (
+              <button type="button" key={em} onClick={() => setContent((prev) => prev + em)} className="px-2.5 py-1 rounded-full bg-cream border border-gray-200 text-sm">{em}</button>
+            ))}
+          </div>
           <p className="text-[11px] text-gray-500">Variabel tersedia: {'{nama} {tipe} {kota} {pic} {termin} {poin} {margin}'} — otomatis terisi data tiap customer.</p>
         </div>
 

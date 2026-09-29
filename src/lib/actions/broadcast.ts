@@ -2,15 +2,19 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { renderTemplate } from '@/lib/utils';
+import { renderTemplate, hasBrokenEncoding } from '@/lib/utils';
 
 export async function upsertTemplate(formData: FormData) {
   const supabase = createClient();
   const id = formData.get('id') as string;
+  const content = formData.get('content') as string;
+  if (hasBrokenEncoding(content)) {
+    throw new Error('Ada karakter rusak (biasanya emoji hasil paste) di isi pesan. Hapus karakter tersebut dan ketik ulang emoji langsung di kotak teks, lalu simpan lagi.');
+  }
   const payload = {
     name: formData.get('name') as string,
     category: (formData.get('category') as string) || 'Lainnya',
-    content: formData.get('content') as string,
+    content,
   };
   if (id) {
     await supabase.from('message_templates').update(payload).eq('id', id);
@@ -30,6 +34,9 @@ export async function createBroadcast(name: string, messageContent: string, temp
   const supabase = createClient();
   if (!name.trim()) throw new Error('Nama broadcast wajib diisi.');
   if (customerIds.length === 0) throw new Error('Pilih minimal 1 customer.');
+  if (hasBrokenEncoding(messageContent)) {
+    throw new Error('Ada karakter rusak (biasanya emoji hasil paste) di isi pesan. Hapus karakter tersebut dan ketik ulang emoji langsung di kotak teks, lalu coba lagi.');
+  }
 
   const { data: { user } } = await supabase.auth.getUser();
   const { data: customers } = await supabase.from('customers').select('*').in('id', customerIds);

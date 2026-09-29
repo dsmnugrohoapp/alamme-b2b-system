@@ -134,6 +134,13 @@ function replaceAllSafe(str: string, token: string, val: string) {
   return str.split(token).join(val);
 }
 
+// Mendeteksi karakter "rusak" (mojibake) — biasanya muncul saat emoji di-paste dari
+// sumber lain (Word, Notes, WA tool lain) dengan encoding yang tidak cocok.
+// U+FFFD adalah "replacement character" yang browser tampilkan sebagai kotak/tanda tanya (�).
+export function hasBrokenEncoding(text: string): boolean {
+  return (text || '').includes('\uFFFD');
+}
+
 // Ganti placeholder {nama}, {tipe}, {kota}, {pic}, {termin}, {poin}, {margin} dengan data customer
 export function renderTemplate(content: string, customer: any): string {
   let out = content || '';
