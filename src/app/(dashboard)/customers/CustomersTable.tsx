@@ -5,7 +5,7 @@ import CustomerForm from './CustomerForm';
 import CopyOrderLink from './CopyOrderLink';
 import { waLink } from '@/lib/utils';
 
-const TYPES = ['Direct Customer', 'Hotel', 'Restoran', 'Cafe', 'Distributor', 'Reseller'];
+const TYPES = ['Direct Customer', 'Hotel', 'Restoran', 'Cafe', 'Distributor', 'Pabrik', 'Reseller'];
 
 export default function CustomersTable({ customers }: { customers: any[] }) {
   const [q, setQ] = useState('');

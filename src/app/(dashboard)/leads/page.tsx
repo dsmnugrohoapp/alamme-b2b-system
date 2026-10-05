@@ -18,7 +18,7 @@ export default async function LeadsPage() {
         <div>
           <div className="text-[11px] uppercase tracking-wide text-golddeep font-bold">Sales Pipeline</div>
           <h1 className="font-serif text-2xl font-semibold">Leads Management</h1>
-          <p className="text-sm text-gray-500 mt-1">Prospek Hotel/Restoran/Cafe/Distributor/Reseller yang belum atau baru akan closing.</p>
+          <p className="text-sm text-gray-500 mt-1">Prospek Hotel/Restoran/Cafe/Distributor/Pabrik/Reseller yang belum atau baru akan closing.</p>
         </div>
         <LeadForm mode="create" customers={customers || []} products={products || []} />
       </div>

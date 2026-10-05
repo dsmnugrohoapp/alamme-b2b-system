@@ -59,7 +59,7 @@ Jika Supabase Anda sudah pernah dipakai sebelumnya dan Anda tidak yakin migrasi 
 - Atur role lewat **Supabase Table Editor > profiles > kolom role**.
 
 ### Customer Database
-- Tipe: Direct Customer, Hotel, Restoran, Cafe, Distributor, Reseller.
+- Tipe: Direct Customer, Hotel, Restoran, Cafe, Distributor, Pabrik, Reseller.
 - Segmen: Domestik / Mancanegara.
 - Alamat cascading Provinsi/Kota/Kecamatan (data wilayah Indonesia via API publik emsifa.com).
 - Import massal via Excel/CSV (unduh template di halaman Customer).

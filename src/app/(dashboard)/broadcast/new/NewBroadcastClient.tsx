@@ -3,7 +3,7 @@ import { useMemo, useState, useTransition } from 'react';
 import { createBroadcast } from '@/lib/actions/broadcast';
 import { renderTemplate, hasBrokenEncoding } from '@/lib/utils';
 
-const TYPES = ['Direct Customer', 'Hotel', 'Restoran', 'Cafe', 'Distributor', 'Reseller'];
+const TYPES = ['Direct Customer', 'Hotel', 'Restoran', 'Cafe', 'Distributor', 'Pabrik', 'Reseller'];
 const QUICK_EMOJI = ['😊', '🙏', '🎉', '✅', '📦', '💬', '⭐', '🔥', '👋', '🛍️'];
 
 export default function NewBroadcastClient({ customers, templates }: { customers: any[]; templates: any[] }) {
