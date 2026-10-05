@@ -63,6 +63,9 @@ export default function OrdersTable({ orders, currentRole }: { orders: any[]; cu
                   <td className="whitespace-nowrap">
                     <Link href={`/orders/${o.id}`} className="btn" style={{ padding: '5px 10px', fontSize: 12 }}>Edit</Link>{' '}
                     <Link href={`/orders/${o.id}/invoice`} className="btn" style={{ padding: '5px 10px', fontSize: 12 }}>Invoice</Link>{' '}
+                    {o.status === 'Lunas' && (
+                      <Link href={`/orders/${o.id}/invoice?doc=paid`} className="btn btn-gold" style={{ padding: '5px 10px', fontSize: 12 }}>Bukti Lunas</Link>
+                    )}{' '}
                     {o.status !== 'Lunas' && (
                       <form action={markPaid.bind(null, o.id)} className="inline">
                         <button className="btn" style={{ padding: '5px 10px', fontSize: 12 }}>Lunas</button>

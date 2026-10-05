@@ -4,7 +4,7 @@ import DocClient from './DocClient';
 
 export const dynamic = 'force-dynamic';
 
-export default async function InvoicePage({ params }: { params: { id: string } }) {
+export default async function InvoicePage({ params, searchParams }: { params: { id: string }; searchParams: { doc?: string } }) {
   const supabase = createClient();
   const [{ data: order }, { data: items }, { data: companies }, { data: pointValueRow }] = await Promise.all([
     supabase.from('orders').select('*, customers(*)').eq('id', params.id).single(),
@@ -23,6 +23,7 @@ export default async function InvoicePage({ params }: { params: { id: string } }
       items={items || []}
       companies={companyMap}
       pointValue={(pointValueRow?.value as number) || 1000}
+      initialDoc={searchParams?.doc}
     />
   );
 }

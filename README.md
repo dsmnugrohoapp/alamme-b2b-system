@@ -88,6 +88,11 @@ Karena tim Customer Care menangani Reseller dan Direct Customer sekaligus, fitur
 - Multi-rekening bank per perusahaan.
 - Download PDF atau cetak langsung dari browser.
 
+### Bukti Lunas (Paid Invoice)
+- Untuk semua order berstatus Lunas (termasuk termin CBD yang sudah dibayar), tersedia dokumen **Bukti Lunas** dengan cap LUNAS, tanggal pembayaran, dan rujukan nomor invoice.
+- Buka lewat tombol **Bukti Lunas** di daftar Order, atau pilih jenis dokumen di halaman Invoice. Bisa diunduh PDF atau dicetak untuk dikirim ke customer.
+- Tanggal pembayaran diisi di form Order saat status Lunas (otomatis terisi hari ini).
+
 ### Fulfillment
 - Alur status: Perlu Disiapkan → Disiapkan → Dikirim → Diterima.
 - Retur (Sebagian/Total) dengan pencatatan per produk.

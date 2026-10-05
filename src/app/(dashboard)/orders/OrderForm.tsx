@@ -37,6 +37,7 @@ export default function OrderForm({
   const [payTerm, setPayTerm] = useState(order?.pay_term || 'Cash');
   const [status, setStatus] = useState(order?.status || 'Penawaran');
   const [date, setDate] = useState(order?.order_date || todayStr());
+  const [paidDate, setPaidDate] = useState(order?.paid_date || todayStr());
   const [shipDiffer, setShipDiffer] = useState(order ? !order.ship_same_as_customer : false);
 
   const customer = customers.find((c) => c.id === customerId);
@@ -151,6 +152,13 @@ export default function OrderForm({
           </div>
         </div>
       </div>
+
+      {status === 'Lunas' && (
+        <div className="field mb-3 max-w-xs">
+          <label>Tanggal Pembayaran (tercetak di Bukti Lunas)</label>
+          <input type="date" name="paid_date" value={paidDate} onChange={(e) => setPaidDate(e.target.value)} />
+        </div>
+      )}
 
       <fieldset className="border border-dashed border-gray-300 rounded-lg p-3 mb-3">
         <legend className="text-[11px] font-bold uppercase text-golddeep px-1">Alamat Pengiriman</legend>

@@ -2,8 +2,8 @@
 import { useRef, useState } from 'react';
 import { rp, addDays } from '@/lib/utils';
 
-export default function DocClient({ order, items, companies, pointValue }: { order: any; items: any[]; companies: Record<string, any>; pointValue: number }) {
-  const [docType, setDocType] = useState<'invoice' | 'quotation' | 'suratjalan'>('invoice');
+export default function DocClient({ order, items, companies, pointValue, initialDoc }: { order: any; items: any[]; companies: Record<string, any>; pointValue: number; initialDoc?: string }) {
+  const [docType, setDocType] = useState<'invoice' | 'quotation' | 'suratjalan' | 'paid'>(initialDoc === 'paid' && order.status === 'Lunas' ? 'paid' : 'invoice');
   const [companyKey, setCompanyKey] = useState<'sda' | 'mba' | 'plain'>('sda');
   const printRef = useRef<HTMLDivElement>(null);
   const [downloading, setDownloading] = useState(false);
@@ -14,8 +14,8 @@ export default function DocClient({ order, items, companies, pointValue }: { ord
     ? [c?.address_detail, c?.district, c?.city, c?.province].filter(Boolean).join(', ')
     : [order.ship_address_detail, order.ship_district, order.ship_city, order.ship_province].filter(Boolean).join(', ');
 
-  const docNo = docType === 'invoice' ? order.invoice_no : docType === 'quotation' ? order.quo_no : order.surat_jalan_no;
-  const docLabel = docType === 'invoice' ? 'INVOICE' : docType === 'quotation' ? 'QUOTATION' : 'SURAT JALAN';
+  const docNo = docType === 'invoice' || docType === 'paid' ? order.invoice_no : docType === 'quotation' ? order.quo_no : order.surat_jalan_no;
+  const docLabel = docType === 'invoice' ? 'INVOICE' : docType === 'paid' ? 'BUKTI LUNAS' : docType === 'quotation' ? 'QUOTATION' : 'SURAT JALAN';
   const bankAccounts: any[] = comp.bank_accounts || [];
 
   async function downloadPdf() {
@@ -42,6 +42,7 @@ export default function DocClient({ order, items, companies, pointValue }: { ord
               <option value="quotation">Quotation / Penawaran</option>
               <option value="invoice">Invoice</option>
               <option value="suratjalan">Surat Jalan / Packing List</option>
+              <option value="paid" disabled={order.status !== 'Lunas'}>Bukti Lunas / Paid Invoice{order.status !== 'Lunas' ? ' (tersedia setelah status Lunas)' : ''}</option>
             </select>
           </div>
           <div className="field"><label>Kop Surat</label>
@@ -65,7 +66,10 @@ export default function DocClient({ order, items, companies, pointValue }: { ord
         </div>
       )}
 
-      <div ref={printRef} className="bg-white max-w-[800px] mx-auto p-8 md:p-12 border border-gray-200 shadow-sm" id="doc-printable">
+      <div ref={printRef} className="relative bg-white max-w-[800px] mx-auto p-8 md:p-12 border border-gray-200 shadow-sm" id="doc-printable">
+        {docType === 'paid' && (
+          <div style={{ position: 'absolute', top: 200, right: 48, transform: 'rotate(-12deg)', border: '4px solid #15803d', color: '#15803d', padding: '6px 18px', fontSize: 28, fontWeight: 800, letterSpacing: 3, borderRadius: 8, opacity: 0.85 }}>LUNAS</div>
+        )}
         <div className={`flex justify-between items-start pb-4 mb-5 ${companyKey === 'plain' ? 'border-b border-gray-200' : 'border-b-[3px] border-ink'}`}>
           <div>
             <div className={companyKey === 'plain' ? 'text-base font-bold' : 'font-serif text-xl font-bold'}>{comp.name || '(Nama Perusahaan)'}</div>
@@ -80,6 +84,7 @@ export default function DocClient({ order, items, companies, pointValue }: { ord
               <div>No: <b className="font-mono">{docNo}</b></div>
               <div>Tanggal: {order.order_date}</div>
               {docType === 'invoice' && <div>Jatuh Tempo: {order.due_date}</div>}
+              {docType === 'paid' && <div>Tanggal Lunas: <b>{order.paid_date || '-'}</b></div>}
               {docType === 'quotation' && <div>Berlaku s.d: {addDays(order.order_date, 14)}</div>}
               <div>Ref. PO: {order.po_number || '-'}</div>
             </div>
@@ -158,7 +163,9 @@ export default function DocClient({ order, items, companies, pointValue }: { ord
               </div>
             )}
             <div className="mt-6 text-xs text-gray-600 bg-cream p-4 rounded-lg leading-relaxed">
-              {docType === 'invoice' ? (
+              {docType === 'paid' ? (
+                <>Pembayaran untuk invoice <b>{order.invoice_no}</b> sebesar <b>{rp(order.grand_total)}</b> telah kami terima{order.paid_date ? <> pada <b>{order.paid_date}</b></> : ''}{order.payment_method_preference ? <> melalui <b>{order.payment_method_preference}</b></> : ''}. Dokumen ini merupakan bukti bahwa invoice tersebut telah <b>LUNAS</b>. Terima kasih atas kepercayaan Anda kepada {comp.name || 'Alamme'}.</>
+              ) : docType === 'invoice' ? (
                 <>Mohon melakukan pembayaran sesuai termin <b>{order.pay_term}</b> paling lambat <b>{order.due_date}</b> ke rekening berikut:<br />
                   {bankAccounts.length ? bankAccounts.map((b, i) => (
                     <span key={i}>{b.bank} — {b.accountNo} a.n. {b.holder} ({b.type}){i < bankAccounts.length - 1 && <br />}</span>

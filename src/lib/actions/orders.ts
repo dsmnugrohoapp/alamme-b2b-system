@@ -79,6 +79,7 @@ export async function saveOrder(formData: FormData) {
     order_date: date,
     pay_term: payTerm,
     status: formData.get('status') as string,
+    paid_date: formData.get('status') === 'Lunas' ? ((formData.get('paid_date') as string) || todayStr()) : null,
     discount: calc.discount, discount_type: orderDiscountType, discount_value: orderDiscountValue,
     ship_charge: shipCharge, ship_actual: shipActual, other_cost: otherCost, ppn,
     notes,
