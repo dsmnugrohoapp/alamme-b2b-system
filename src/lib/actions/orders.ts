@@ -42,6 +42,7 @@ export async function saveOrder(formData: FormData) {
   const otherCost = parseFloat((formData.get('other_cost') as string) || '0');
   const ppn = formData.get('ppn') === '1';
   const notes = (formData.get('notes') as string) || null;
+  const invoiceNotes = ((formData.get('invoice_notes') as string) || '').trim() || null;
   const calc = computeOrderCalc(items, orderDiscountType, orderDiscountValue, shipCharge, shipActual, otherCost, ppn);
 
   const shipDiffer = formData.get('ship_differ') === '1';
@@ -81,6 +82,7 @@ export async function saveOrder(formData: FormData) {
     discount: calc.discount, discount_type: orderDiscountType, discount_value: orderDiscountValue,
     ship_charge: shipCharge, ship_actual: shipActual, other_cost: otherCost, ppn,
     notes,
+    invoice_notes: invoiceNotes,
     due_date: addDays(date, termDays(payTerm)),
     subtotal: calc.subtotal, grand_total: calc.grandTotal, net_profit: calc.netProfit, net_margin: calc.netMargin,
     points_earned: pts.total,

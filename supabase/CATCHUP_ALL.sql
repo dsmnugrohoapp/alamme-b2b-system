@@ -39,6 +39,7 @@ alter table orders add column if not exists delete_requested boolean not null de
 alter table orders add column if not exists delete_requested_by uuid references profiles(id);
 alter table orders add column if not exists delete_requested_at timestamptz;
 alter table orders add column if not exists delete_request_note text;
+alter table orders add column if not exists invoice_notes text;
 
 -- ---------- ORDER_ITEMS ----------
 alter table order_items add column if not exists discount_type text not null default 'percent';

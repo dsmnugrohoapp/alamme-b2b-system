@@ -49,7 +49,8 @@ Jika Supabase Anda sudah pernah dipakai sebelumnya dan Anda tidak yakin migrasi 
 - Biaya operasional lain.
 - Otomatis hitung Net Profit & Net Margin (tanpa HPP/COGS).
 - Alamat pengiriman bisa beda dari alamat customer.
-- Catatan bebas per order (terlihat tim, tidak ikut tercetak di invoice/PDF customer).
+- Catatan Internal per order untuk PIC fulfillment (terlihat tim, tidak ikut tercetak di invoice/PDF customer).
+- Keterangan Invoice (opsional, terpisah dari catatan internal): tampil di Invoice & Quotation untuk customer. Butuh `migration_012_invoice_notes.sql` (atau `CATCHUP_ALL.sql`).
 - PIC (siapa yang membuat order) otomatis tercatat.
 
 ### Approval Hapus Order

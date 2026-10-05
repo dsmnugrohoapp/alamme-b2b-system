@@ -151,6 +151,12 @@ export default function DocClient({ order, items, companies, pointValue }: { ord
                 ★ Poin diperoleh dari transaksi ini: {order.points_earned} poin (setara {rp(order.points_earned * pointValue)})
               </div>
             )}
+            {order.invoice_notes && (
+              <div className="mt-4 text-xs text-gray-700 border border-gray-200 rounded-lg p-4 leading-relaxed whitespace-pre-wrap">
+                <div className="font-bold text-ink mb-1">Keterangan</div>
+                {order.invoice_notes}
+              </div>
+            )}
             <div className="mt-6 text-xs text-gray-600 bg-cream p-4 rounded-lg leading-relaxed">
               {docType === 'invoice' ? (
                 <>Mohon melakukan pembayaran sesuai termin <b>{order.pay_term}</b> paling lambat <b>{order.due_date}</b> ke rekening berikut:<br />

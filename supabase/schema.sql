@@ -105,6 +105,7 @@ create table if not exists orders (
   fulfillment_notes text,
   created_by uuid references profiles(id),
   notes text,
+  invoice_notes text,
   delete_requested boolean not null default false,
   delete_requested_by uuid references profiles(id),
   delete_requested_at timestamptz,

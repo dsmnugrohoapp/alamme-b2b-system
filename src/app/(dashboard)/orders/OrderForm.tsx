@@ -173,7 +173,18 @@ export default function OrderForm({
         )}
       </fieldset>
 
-      <div className="field mb-3"><label>Catatan (opsional)</label><textarea name="notes" rows={2} defaultValue={order?.notes} placeholder="Catatan bebas untuk order ini — kondisi khusus, instruksi internal, dll" /></div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+        <div className="field mb-0">
+          <label>Catatan Internal untuk PIC Fulfillment (opsional)</label>
+          <textarea name="notes" rows={3} defaultValue={order?.notes} placeholder="Instruksi untuk tim internal — kondisi khusus, urutan packing, dll" />
+          <p className="text-[11px] text-gray-500 mt-1">Hanya terlihat tim. Tidak tercetak di invoice/PDF.</p>
+        </div>
+        <div className="field mb-0">
+          <label>Keterangan Invoice (opsional)</label>
+          <textarea name="invoice_notes" rows={3} defaultValue={order?.invoice_notes} placeholder="mis. Pembayaran ditransfer paling lambat H+7, harga berlaku untuk pengiriman bulan ini" />
+          <p className="text-[11px] text-gray-500 mt-1">Tampil di Invoice &amp; Quotation untuk customer.</p>
+        </div>
+      </div>
 
       <fieldset className="border border-dashed border-gray-300 rounded-lg p-3 mb-3">
         <legend className="text-[11px] font-bold uppercase text-golddeep px-1">Item Order</legend>
